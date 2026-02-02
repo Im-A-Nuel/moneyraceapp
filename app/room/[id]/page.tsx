@@ -6,10 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { roomAPI, usdcAPI } from "@/lib/api";
+import { roomAPI, usdcAPI, executeSponsoredTransaction, getSponsorAddress } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { getAvailableCoin } from "@/lib/sui-utils";
 import { DEFAULT_COIN_TYPE, MIN_BALANCE_USDC, SUI_CLOCK_ID } from "@/lib/constants";
+import { buildJoinRoomTx, buildDepositTx } from "@/lib/tx-builder";
+import { buildSponsoredTx } from "@/lib/zklogin-tx";
+
+// Helper function to format time ago
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffMins > 0) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+  return 'Just now';
+}
 
 interface Participant {
   address: string;
@@ -31,22 +48,77 @@ export default function RoomDetail() {
   const [playerPositionId, setPlayerPositionId] = useState<string | null>(null);
   const [isJoined, setIsJoined] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string>("0.00");
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
 
   // Fetch room data on mount and check if user already joined
   useEffect(() => {
     if (roomId) {
       fetchRoomData();
-      // Check if user already joined this room
-      const storedPositionId = localStorage.getItem(`playerPosition_${roomId}`);
-      if (storedPositionId) {
-        setPlayerPositionId(storedPositionId);
-        setIsJoined(true);
-      }
+      fetchParticipants();
+      fetchHistory();
     }
     if (user?.address) {
       fetchUSDCBalance();
+      // Check if current user already joined this room (using address-specific key)
+      const storedPositionId = localStorage.getItem(`playerPosition_${roomId}_${user.address}`);
+      if (storedPositionId) {
+        setPlayerPositionId(storedPositionId);
+        setIsJoined(true);
+      } else {
+        // Reset if no stored position for this address
+        setPlayerPositionId(null);
+        setIsJoined(false);
+      }
     }
   }, [roomId, user]);
+
+  // Also check from participants list after fetching
+  useEffect(() => {
+    if (user?.address && participants.length > 0) {
+      const isUserJoined = participants.some(
+        p => p.address.toLowerCase() === user.address.toLowerCase()
+      );
+      if (isUserJoined && !isJoined) {
+        // User is in participants but we don't have position ID locally
+        // This means they joined from blockchain but localStorage was cleared
+        setIsJoined(true);
+        console.log('User found in participants list, marking as joined');
+      }
+    }
+  }, [participants, user?.address]);
+
+  const fetchParticipants = async () => {
+    if (!roomId) return;
+    try {
+      const response = await roomAPI.getParticipants(roomId);
+      if (response.success && response.participants) {
+        // Transform to display format
+        const USDC_DECIMALS = 1_000_000;
+        const formattedParticipants = response.participants.map((p: any) => ({
+          address: p.address,
+          totalDeposit: p.amount / USDC_DECIMALS,
+          depositsCount: 1, // Initial join = 1 deposit
+          consistencyScore: 100, // Default score
+        }));
+        setParticipants(formattedParticipants);
+      }
+    } catch (error) {
+      console.error('Failed to fetch participants:', error);
+    }
+  };
+
+  const fetchHistory = async () => {
+    if (!roomId) return;
+    try {
+      const response = await roomAPI.getHistory(roomId);
+      if (response.success && response.history) {
+        setHistory(response.history);
+      }
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    }
+  };
 
   const fetchUSDCBalance = async () => {
     if (!user?.address) return;
@@ -74,20 +146,43 @@ export default function RoomDetail() {
       if (response.success && response.room) {
         console.log("Room data from blockchain:", response.room);
 
+        // Extract blockchain fields from response - check multiple possible paths
+        const blockchainData = response.room.content?.fields || response.room.fields || response.room;
+        console.log("Blockchain data fields:", blockchainData);
+
+        // Parse status - can be number or string
+        const statusValue = parseInt(blockchainData.status);
+        console.log("Room status value:", statusValue, "raw:", blockchainData.status);
+        
+        let roomStatus: "pending" | "active" | "finished";
+        if (statusValue === 1) {
+          roomStatus = "active";
+        } else if (statusValue === 2) {
+          roomStatus = "finished";
+        } else {
+          roomStatus = "pending";
+        }
+        console.log("Parsed room status:", roomStatus);
+
+        // USDC has 6 decimals
+        const USDC_DECIMALS = 1_000_000;
+        const rawDepositAmount = parseInt(blockchainData.deposit_amount) || 10;
+        
         // Transform blockchain data to frontend format
         const transformedRoom = {
           id: roomId,
           name: `Room #${roomId.slice(0, 8)}`,
           creator: response.room.objectId || "Unknown",
           vaultId: response.room.vaultId || null, // ✓ Store vaultId from database
-          duration: 12, // TODO: Get from blockchain
-          weeklyTarget: 100, // TODO: Get from blockchain
-          currentPeriod: 0, // TODO: Get from blockchain
-          totalPeriods: 12, // TODO: Get from blockchain
+          deposit_amount: rawDepositAmount, // ✓ Store raw deposit amount for transactions
+          duration: parseInt(blockchainData.total_periods) || 12,
+          weeklyTarget: rawDepositAmount / USDC_DECIMALS, // Convert to USDC display value
+          currentPeriod: 0, // TODO: Calculate from start_time
+          totalPeriods: parseInt(blockchainData.total_periods) || 12,
           totalDeposit: 0, // TODO: Get from blockchain
           rewardPool: 0, // TODO: Get from blockchain
-          strategy: "Stable",
-          status: "active" as const,
+          strategy: blockchainData.strategy_id === 0 ? "Stable" : blockchainData.strategy_id === 1 ? "Growth" : "Aggressive",
+          status: roomStatus,
           participants: [], // TODO: Query from blockchain
         };
 
@@ -153,15 +248,27 @@ export default function RoomDetail() {
 
       console.log("Using USDC coin object:", coinObjectId);
 
-      const joinData = {
+      // Get deposit amount from room data (default to 10 if not available)
+      const depositAmount = roomData?.deposit_amount || room?.deposit_amount || 10;
+      console.log("Deposit amount:", depositAmount);
+
+      // Build the transaction on frontend
+      const tx = buildJoinRoomTx({
         roomId: roomId,
         vaultId: roomData.vaultId,
-        coinObjectId: coinObjectId, // ✓ Real USDC coin object from user's wallet
+        coinObjectId: coinObjectId,
         clockId: SUI_CLOCK_ID,
-        userAddress: user?.address,
-      };
+        depositAmount: depositAmount,
+      });
 
-      const response = await roomAPI.joinRoom(joinData);
+      // Sign with ephemeral keypair and get txBytes + signature
+      console.log("Building and signing transaction...");
+      const { txBytes, userSignature } = await buildSponsoredTx(tx, user.address);
+      console.log("Transaction signed by user");
+
+      // Send to backend for sponsor signature and execution
+      console.log("Sending to backend for execution...");
+      const response = await executeSponsoredTransaction(txBytes, userSignature);
 
       if (response.success) {
         // Extract player position ID from transaction effects
@@ -182,12 +289,13 @@ export default function RoomDetail() {
         }
 
         if (positionId) {
-          // Store player position ID in localStorage
-          localStorage.setItem(`playerPosition_${roomId}`, positionId);
+          // Store player position ID in localStorage (include user address in key)
+          localStorage.setItem(`playerPosition_${roomId}_${user.address}`, positionId);
           setPlayerPositionId(positionId);
           setIsJoined(true);
           alert("Successfully joined the room!");
           fetchRoomData(); // Refresh room data
+          fetchParticipants(); // Refresh participants
         } else {
           setError("Room joined but could not extract player position ID");
         }
@@ -243,15 +351,28 @@ export default function RoomDetail() {
 
       console.log("Using USDC coin object for deposit:", coinObjectId);
 
-      const depositData = {
-        roomId: roomId,
-        vaultId: roomData.vaultId, // ✓ Real vaultId from database
-        playerPositionId: playerPositionId, // ✓ Real playerPositionId from join room
-        coinObjectId: coinObjectId, // ✓ Real USDC coin object from user's wallet
-        clockId: SUI_CLOCK_ID,
-      };
+      // Get deposit amount from room data
+      const depositAmountValue = roomData?.deposit_amount || room?.deposit_amount || 10;
+      console.log("Deposit amount:", depositAmountValue);
 
-      const response = await roomAPI.deposit(depositData);
+      // Build the deposit transaction on frontend
+      const tx = buildDepositTx({
+        roomId: roomId,
+        vaultId: roomData.vaultId,
+        playerPositionId: playerPositionId,
+        coinObjectId: coinObjectId,
+        clockId: SUI_CLOCK_ID,
+        depositAmount: depositAmountValue,
+      });
+
+      // Sign with ephemeral keypair
+      console.log("Building and signing deposit transaction...");
+      const { txBytes, userSignature } = await buildSponsoredTx(tx, user.address);
+      console.log("Deposit transaction signed by user");
+
+      // Send to backend for sponsor signature and execution
+      console.log("Sending deposit to backend for execution...");
+      const response = await executeSponsoredTransaction(txBytes, userSignature);
 
       if (response.success) {
         alert("Deposit successful!");
@@ -368,10 +489,12 @@ export default function RoomDetail() {
               className={`text-xs px-3 py-1 rounded ${
                 room.status === "active"
                   ? "bg-green-100 text-green-800"
+                  : room.status === "pending"
+                  ? "bg-yellow-100 text-yellow-800"
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              {room.status === "active" ? "Active" : "Ended"}
+              {room.status === "active" ? "Active" : room.status === "pending" ? "Pending" : "Finished"}
             </span>
           </div>
         </div>
@@ -415,7 +538,7 @@ export default function RoomDetail() {
               <CardDescription>Participants</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{room.participants?.length || 0}</div>
+              <div className="text-2xl font-bold">{participants.length}</div>
             </CardContent>
           </Card>
         </div>
@@ -500,7 +623,7 @@ export default function RoomDetail() {
               </Card>
             )}
 
-            {room.status === "ended" && (
+            {room.status === "finished" && (
               <Card>
                 <CardHeader>
                   <CardTitle>Claim Rewards</CardTitle>
@@ -537,16 +660,18 @@ export default function RoomDetail() {
                 <div className="flex gap-2">
                   <Input
                     readOnly
-                    value={`${window.location.origin}/room/${roomId}`}
+                    value={typeof window !== 'undefined' ? `${window.location.origin}/room/${roomId}` : `/room/${roomId}`}
                     className="text-sm"
                   />
                   <Button
                     variant="outline"
                     onClick={() => {
-                      navigator.clipboard.writeText(
-                        `${window.location.origin}/room/${roomId}`
-                      );
-                      alert("Link copied!");
+                      if (typeof window !== 'undefined') {
+                        navigator.clipboard.writeText(
+                          `${window.location.origin}/room/${roomId}`
+                        );
+                        alert("Link copied!");
+                      }
                     }}
                   >
                     Copy
@@ -569,12 +694,12 @@ export default function RoomDetail() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Leaderboard</CardTitle>
-                    <CardDescription>Ranked by consistency score</CardDescription>
+                    <CardDescription>Ranked by consistency score ({participants.length} participants)</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {room.participants && room.participants.length > 0 ? (
-                        room.participants
+                      {participants && participants.length > 0 ? (
+                        participants
                           .sort((a: Participant, b: Participant) => b.consistencyScore - a.consistencyScore)
                           .map((participant: Participant, index: number) => (
                           <div
@@ -585,7 +710,7 @@ export default function RoomDetail() {
                               <span className="font-bold text-gray-400">#{index + 1}</span>
                               <div>
                                 <div className="font-mono text-sm">
-                                  {participant.address}
+                                  {participant.address.slice(0, 8)}...{participant.address.slice(-6)}
                                 </div>
                                 <div className="text-xs text-gray-600">
                                   {participant.depositsCount} deposits
@@ -593,7 +718,7 @@ export default function RoomDetail() {
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="font-semibold">${participant.totalDeposit}</div>
+                              <div className="font-semibold">${participant.totalDeposit.toFixed(2)}</div>
                               <div className="text-xs text-gray-600">
                                 {participant.consistencyScore}% score
                               </div>
@@ -602,8 +727,8 @@ export default function RoomDetail() {
                         ))
                       ) : (
                         <div className="text-center py-8 text-gray-500">
-                          <p>No participants data available yet</p>
-                          <p className="text-sm mt-2">This room is from blockchain but participant data is not indexed</p>
+                          <p>No participants yet</p>
+                          <p className="text-sm mt-2">Be the first to join this room!</p>
                         </div>
                       )}
                     </div>
@@ -647,22 +772,55 @@ export default function RoomDetail() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Transaction History</CardTitle>
+                    <CardDescription>{history.length} transactions</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between p-3 bg-gray-50 rounded text-sm">
-                        <div>
-                          <div className="font-semibold">Deposit</div>
-                          <div className="text-gray-600">Week 3</div>
+                      {history.length > 0 ? (
+                        history.map((tx, index) => {
+                          const USDC_DECIMALS = 1_000_000;
+                          const amount = (tx.amount / USDC_DECIMALS).toFixed(2);
+                          const date = new Date(tx.timestamp);
+                          const timeAgo = getTimeAgo(date);
+                          
+                          return (
+                            <div key={`${tx.txDigest}-${index}`} className="flex justify-between p-3 bg-gray-50 rounded text-sm">
+                              <div>
+                                <div className="font-semibold flex items-center gap-2">
+                                  {tx.type === 'join' ? (
+                                    <span className="text-green-600">🎉 Joined Room</span>
+                                  ) : (
+                                    <span className="text-blue-600">💰 Deposit</span>
+                                  )}
+                                </div>
+                                <div className="text-gray-600 font-mono text-xs">
+                                  {tx.player?.slice(0, 8)}...{tx.player?.slice(-6)}
+                                </div>
+                                {tx.type === 'deposit' && (
+                                  <div className="text-gray-500 text-xs">Week {tx.period + 1}</div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold">${amount}</div>
+                                <div className="text-gray-600 text-xs">{timeAgo}</div>
+                                <a 
+                                  href={`https://suiscan.xyz/testnet/tx/${tx.txDigest}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 text-xs hover:underline"
+                                >
+                                  View →
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>No transactions yet</p>
+                          <p className="text-sm mt-2">Join this room to start!</p>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold">$100</div>
-                          <div className="text-gray-600 text-xs">2 days ago</div>
-                        </div>
-                      </div>
-                      <div className="text-center py-4 text-gray-600 text-sm">
-                        More transactions...
-                      </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

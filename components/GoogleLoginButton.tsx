@@ -5,6 +5,7 @@ import { authAPI } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { getOrCreateKeypairForUser } from '@/lib/keypair';
 
 interface GoogleLoginButtonProps {
   onSuccess?: () => void;
@@ -42,15 +43,20 @@ export function GoogleLoginButton({ onSuccess, onError }: GoogleLoginButtonProps
 
       if (authResponse.success && authResponse.user) {
         console.log('Authentication successful!');
-        console.log('Sui Address:', authResponse.user.address);
+        
+        // Generate deterministic keypair from Google sub
+        // Same Google account = Same Sui address, always
+        const keypair = await getOrCreateKeypairForUser(payload.sub);
+        const suiAddress = keypair.getPublicKey().toSuiAddress();
+        console.log('User Sui Address (deterministic from Google sub):', suiAddress);
 
-        // Store user in zustand
+        // Store user in zustand with deterministic address
         login(
           {
             id: authResponse.user.sub,
             email: payload.email,
             name: payload.name || payload.email,
-            address: authResponse.user.address,
+            address: suiAddress,
             avatar: payload.picture,
           },
           idToken

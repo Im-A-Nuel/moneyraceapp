@@ -9,6 +9,25 @@ export const api = axios.create({
   },
 });
 
+/**
+ * Get sponsor address for building sponsored transactions
+ */
+export async function getSponsorAddress(): Promise<string> {
+  const response = await api.get('/room/sponsor');
+  return response.data.sponsorAddress;
+}
+
+/**
+ * Execute a user-signed sponsored transaction
+ */
+export async function executeSponsoredTransaction(txBytes: string, userSignature: string): Promise<any> {
+  const response = await api.post('/room/execute-sponsored', {
+    txBytes,
+    userSignature,
+  });
+  return response.data;
+}
+
 // ==================== AUTH ENDPOINTS ====================
 export const authAPI = {
   // Login with Google JWT (zkLogin)
@@ -77,25 +96,25 @@ export const roomAPI = {
     return response.data;
   },
 
-  // Join a room
+  // Get sponsor address for building sponsored transactions
+  getSponsorAddress: async () => {
+    const response = await api.get('/room/sponsor');
+    return response.data;
+  },
+
+  // Join a room (with user signature)
   joinRoom: async (data: {
-    roomId: string;
-    vaultId: string;
-    coinObjectId: string;
-    clockId: string;
-    userAddress: string;
+    txBytes: string;
+    userSignature: string;
   }) => {
     const response = await api.post('/room/join', data);
     return response.data;
   },
 
-  // Make a deposit
+  // Make a deposit (with user signature)
   deposit: async (data: {
-    roomId: string;
-    vaultId: string;
-    playerPositionId: string;
-    coinObjectId: string;
-    clockId: string;
+    txBytes: string;
+    userSignature: string;
   }) => {
     const response = await api.post('/room/deposit', data);
     return response.data;
@@ -114,6 +133,18 @@ export const roomAPI = {
   // Get room data
   getRoom: async (roomId: string) => {
     const response = await api.get(`/room/${roomId}`);
+    return response.data;
+  },
+
+  // Get room participants
+  getParticipants: async (roomId: string) => {
+    const response = await api.get(`/room/${roomId}/participants`);
+    return response.data;
+  },
+
+  // Get room transaction history
+  getHistory: async (roomId: string) => {
+    const response = await api.get(`/room/${roomId}/history`);
     return response.data;
   },
 
@@ -180,12 +211,16 @@ export const convertCreateRoomData = (formData: {
   weeklyTarget: number;
   strategyId: number;
 }) => {
-  const startTimeMs = Date.now() + 60000; // Start in 1 minute
+  // Start immediately (or 5 seconds buffer for transaction processing)
+  const startTimeMs = Date.now() - 5000; // Start 5 seconds ago to ensure room is immediately joinable
   const periodLengthMs = 7 * 24 * 60 * 60 * 1000; // 1 week in milliseconds
+
+  // USDC has 6 decimals, so multiply by 1_000_000
+  const USDC_DECIMALS = 1_000_000;
 
   return {
     totalPeriods: formData.duration,
-    depositAmount: formData.weeklyTarget,
+    depositAmount: formData.weeklyTarget * USDC_DECIMALS, // Convert to USDC smallest unit
     strategyId: formData.strategyId,
     startTimeMs,
     periodLengthMs,

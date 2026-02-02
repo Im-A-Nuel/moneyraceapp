@@ -1,11 +1,11 @@
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
+import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from '@mysten/sui/jsonRpc';
 
 // Get network from env
 const network = (process.env.NEXT_PUBLIC_SUI_NETWORK as 'testnet' | 'devnet' | 'mainnet') || 'testnet';
 
-// Initialize Sui client
-export const suiClient = new SuiClient({
-  url: getFullnodeUrl(network),
+// Initialize Sui client (using JSON RPC client for SDK v2)
+export const suiClient = new SuiJsonRpcClient({
+  url: getJsonRpcFullnodeUrl(network),
 });
 
 // Package and contract IDs (will be set after deployment)
