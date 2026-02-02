@@ -522,7 +522,9 @@ export default function RoomDetail() {
               <CardDescription>Total Pool</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${room.totalDeposit}</div>
+              <div className="text-2xl font-bold">
+                ${participants.reduce((sum, p) => sum + p.totalDeposit, 0).toFixed(2)}
+              </div>
             </CardContent>
           </Card>
           <Card>
