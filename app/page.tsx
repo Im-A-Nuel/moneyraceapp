@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -58,14 +59,10 @@ export default function Home() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex gap-4 justify-center">
-            <Button
-              size="lg"
-              className="text-lg px-8 py-6"
-              onClick={() => router.push("/dashboard")}
-            >
-              Get Started with Google
-            </Button>
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-full max-w-sm">
+              <GoogleLoginButton />
+            </div>
             <Button
               size="lg"
               variant="outline"

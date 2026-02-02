@@ -34,12 +34,25 @@ export default function RoomDetail() {
 
   const fetchRoomData = async () => {
     try {
+      // Validasi Room ID sebelum fetch
+      if (!roomId || roomId.length < 10) {
+        console.warn("Invalid Room ID:", roomId);
+        setError(`Invalid Room ID format. Received: ${roomId || 'undefined'}`);
+        return;
+      }
+
+      console.log("Fetching room data for ID:", roomId);
       const response = await roomAPI.getRoom(roomId);
+
       if (response.success) {
         setRoomData(response.room);
+        setError(""); // Clear any previous errors
       }
     } catch (err: any) {
       console.error("Failed to fetch room data:", err);
+      const errorMsg = err.response?.data?.error || err.message || "Failed to fetch room data";
+      const hint = err.response?.data?.hint || "";
+      setError(`${errorMsg}${hint ? ` - ${hint}` : ''}`);
       // Use mock data as fallback
     }
   };
@@ -153,6 +166,20 @@ export default function RoomDetail() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Error Alert - Show at top if there's an API error */}
+        {error && !roomData && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Unable to Load Room Data</h3>
+            <p className="text-yellow-700 text-sm mb-2">{error}</p>
+            <p className="text-xs text-yellow-600">
+              Room ID: <code className="bg-yellow-100 px-2 py-1 rounded">{roomId}</code>
+            </p>
+            <p className="text-xs text-yellow-600 mt-2">
+              💡 Tip: Make sure the room has been created on the blockchain first. Using mock data for now.
+            </p>
+          </div>
+        )}
+
         {/* Room Header */}
         <div className="mb-6">
           <div className="flex justify-between items-start mb-2">

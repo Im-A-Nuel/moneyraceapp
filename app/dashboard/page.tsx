@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { roomAPI } from "@/lib/api";
+import { useAuthStore } from "@/store/auth.store";
 
 interface Room {
   id: string;
@@ -22,44 +24,59 @@ interface Room {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { user, logout } = useAuthStore();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Format address for display (0x1234...5678)
+  const formatAddress = (address: string) => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
   useEffect(() => {
-    // TODO: Fetch rooms from API
-    // Mock data for now
-    setTimeout(() => {
-      setRooms([
-        {
-          id: "1",
-          name: "Emergency Fund",
-          duration: 12,
-          weeklyTarget: 100,
-          currentPeriod: 3,
-          totalPeriods: 12,
-          participants: 5,
-          myDeposit: 300,
-          totalDeposit: 1500,
-          strategy: "Stable",
-          status: "active",
-        },
-        {
-          id: "2",
-          name: "Vacation Savings",
-          duration: 8,
-          weeklyTarget: 50,
-          currentPeriod: 8,
-          totalPeriods: 8,
-          participants: 3,
-          myDeposit: 400,
-          totalDeposit: 1200,
-          strategy: "Balanced",
-          status: "ended",
-        },
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchRooms();
   }, []);
+
+  const fetchRooms = async () => {
+    try {
+      setLoading(true);
+      const response = await roomAPI.listRooms();
+
+      if (response.success && response.rooms) {
+        // Map backend room data to frontend format
+        const mappedRooms = response.rooms.map((room: any) => ({
+          id: room.roomId, // Backend uses 'roomId'
+          name: `Room #${room.roomId.slice(0, 8)}...`, // Generate name from ID
+          duration: room.totalPeriods || 0,
+          weeklyTarget: room.depositAmount / 1_000_000 || 0, // Convert from USDC decimals (6 decimals)
+          currentPeriod: 0, // TODO: Query from blockchain
+          totalPeriods: room.totalPeriods || 0,
+          participants: 0, // TODO: Query from blockchain
+          myDeposit: 0, // TODO: Calculate from user's position
+          totalDeposit: 0, // TODO: Query from blockchain
+          strategy: `Strategy ${room.strategyId}`,
+          status: "active", // All created rooms are active by default
+        }));
+        setRooms(mappedRooms);
+      } else {
+        // Show message that no rooms exist yet
+        console.log('No rooms found:', response.message);
+        setRooms([]);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch rooms:', error);
+      // On error, show empty state
+      setRooms([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const activeRooms = rooms.filter((r) => r.status === "active");
   const endedRooms = rooms.filter((r) => r.status === "ended");
@@ -73,8 +90,13 @@ export default function Dashboard() {
             Money<span className="text-blue-600">Race</span>
           </h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">user@example.com</span>
-            <Button variant="outline" size="sm">
+            <div className="text-right">
+              <div className="text-sm text-gray-600">{user?.email || 'Guest'}</div>
+              <div className="text-xs font-mono text-blue-600">
+                {user?.address ? formatAddress(user.address) : 'No wallet'}
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
               Logout
             </Button>
           </div>

@@ -53,6 +53,12 @@ export const aiAPI = {
 
 // ==================== ROOM ENDPOINTS ====================
 export const roomAPI = {
+  // List all rooms
+  listRooms: async () => {
+    const response = await api.get('/room');
+    return response.data;
+  },
+
   // Create a new room
   createRoom: async (data: {
     totalPeriods: number;

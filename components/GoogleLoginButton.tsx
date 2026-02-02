@@ -1,0 +1,117 @@
+"use client";
+
+import { GoogleLogin } from '@react-oauth/google';
+import { authAPI } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+interface GoogleLoginButtonProps {
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
+}
+
+export function GoogleLoginButton({ onSuccess, onError }: GoogleLoginButtonProps) {
+  const router = useRouter();
+  const { login } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+
+  const handleSuccess = async (credentialResponse: any) => {
+    try {
+      setLoading(true);
+      console.log('Google OAuth success!');
+
+      // credentialResponse.credential is the ID Token (JWT)
+      const idToken = credentialResponse.credential;
+
+      if (!idToken) {
+        throw new Error('No ID token received from Google');
+      }
+
+      console.log('ID Token received, authenticating with backend...');
+
+      // Decode JWT to get user info (without verification)
+      const base64Url = idToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(base64));
+
+      console.log('User info:', { email: payload.email, sub: payload.sub });
+
+      // Send ID Token (JWT) to backend for verification
+      const authResponse = await authAPI.login(idToken);
+
+      if (authResponse.success && authResponse.user) {
+        console.log('Authentication successful!');
+        console.log('Sui Address:', authResponse.user.address);
+
+        // Store user in zustand
+        login(
+          {
+            id: authResponse.user.sub,
+            email: payload.email,
+            name: payload.name || payload.email,
+            address: authResponse.user.address,
+            avatar: payload.picture,
+          },
+          idToken
+        );
+
+        // Call success callback
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Default: redirect to dashboard
+          router.push('/dashboard');
+        }
+      } else {
+        throw new Error('Authentication failed');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Login failed';
+
+      if (onError) {
+        onError(errorMsg);
+      } else {
+        alert(`Login failed: ${errorMsg}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleError = () => {
+    console.error('Google OAuth error');
+    const errorMsg = 'Google login failed';
+
+    if (onError) {
+      onError(errorMsg);
+    } else {
+      alert(errorMsg);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="flex items-center justify-center gap-2 py-3 px-6 bg-gray-100 rounded-lg">
+          <span className="animate-spin">⏳</span>
+          <span>Signing in...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      <GoogleLogin
+        onSuccess={handleSuccess}
+        onError={handleError}
+        useOneTap={false}
+        theme="filled_blue"
+        size="large"
+        width="100%"
+      />
+    </div>
+  );
+}
