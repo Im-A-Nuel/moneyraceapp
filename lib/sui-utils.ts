@@ -67,10 +67,72 @@ export async function getAvailableCoin(
 ): Promise<string | null> {
   const coins = await getUserCoins(address, coinType);
 
+  // Sort by balance descending to get largest coin first
+  coins.sort((a, b) => Number(BigInt(b.balance) - BigInt(a.balance)));
+
   // Find first coin with sufficient balance
   const suitableCoin = coins.find((coin) => BigInt(coin.balance) >= minBalance);
 
   return suitableCoin ? suitableCoin.objectId : null;
+}
+
+/**
+ * Get all coins that can be merged to meet required amount
+ * Returns coins sorted by balance (largest first) along with total balance
+ * @param address - Sui wallet address
+ * @param requiredAmount - Amount needed (in smallest unit)
+ * @param coinType - Coin type to query
+ * @returns Object with coin IDs, total balance, and whether amount can be met
+ */
+export async function getCoinsForAmount(
+  address: string,
+  requiredAmount: bigint,
+  coinType: string = '0x2::sui::SUI'
+): Promise<{
+  coins: { objectId: string; balance: bigint }[];
+  totalBalance: bigint;
+  canMeetAmount: boolean;
+  primaryCoin: string | null;
+  coinsToMerge: string[];
+}> {
+  const rawCoins = await getUserCoins(address, coinType);
+
+  // Convert to bigint and sort by balance descending
+  const coins = rawCoins
+    .map(c => ({ objectId: c.objectId, balance: BigInt(c.balance) }))
+    .sort((a, b) => Number(b.balance - a.balance));
+
+  const totalBalance = coins.reduce((sum, c) => sum + c.balance, 0n);
+  const canMeetAmount = totalBalance >= requiredAmount;
+
+  // If largest coin is enough, no merge needed
+  if (coins.length > 0 && coins[0].balance >= requiredAmount) {
+    return {
+      coins,
+      totalBalance,
+      canMeetAmount,
+      primaryCoin: coins[0].objectId,
+      coinsToMerge: [],
+    };
+  }
+
+  // Need to merge coins - collect enough coins to meet amount
+  const coinsToMerge: string[] = [];
+  let accumulated = 0n;
+
+  for (const coin of coins) {
+    if (accumulated >= requiredAmount) break;
+    coinsToMerge.push(coin.objectId);
+    accumulated += coin.balance;
+  }
+
+  return {
+    coins,
+    totalBalance,
+    canMeetAmount,
+    primaryCoin: coinsToMerge.length > 0 ? coinsToMerge[0] : null,
+    coinsToMerge: coinsToMerge.slice(1), // First coin is primary, rest are to merge
+  };
 }
 
 /**

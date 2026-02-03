@@ -13,20 +13,30 @@ const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID || '';
 /**
  * Build join_room transaction
  * User signs this tx, so tx_context::sender(ctx) will be the user's address
- * Splits coin to exact deposit amount before calling join_room
+ * Merges coins if needed, then splits to exact deposit amount before calling join_room
  */
 export function buildJoinRoomTx(params: {
   roomId: string;
   vaultId: string;
   coinObjectId: string;
+  coinsToMerge?: string[]; // Additional coins to merge into primary coin
   clockId: string;
   depositAmount: number; // Amount to deposit (from room config)
   password?: string; // Password for private rooms (will be hashed with keccak256)
 }): Transaction {
   const tx = new Transaction();
 
-  // Split exact amount from user's coin
-  const [depositCoin] = tx.splitCoins(tx.object(params.coinObjectId), [params.depositAmount]);
+  // Start with primary coin
+  let primaryCoin = tx.object(params.coinObjectId);
+
+  // Merge additional coins into primary if provided
+  if (params.coinsToMerge && params.coinsToMerge.length > 0) {
+    const coinsToMergeObjects = params.coinsToMerge.map(id => tx.object(id));
+    tx.mergeCoins(primaryCoin, coinsToMergeObjects);
+  }
+
+  // Split exact amount from the (potentially merged) coin
+  const [depositCoin] = tx.splitCoins(primaryCoin, [params.depositAmount]);
 
   // Hash password if provided, otherwise use empty vector
   let passwordBytes: Uint8Array;
@@ -54,20 +64,30 @@ export function buildJoinRoomTx(params: {
 /**
  * Build deposit transaction
  * Matches: deposit(room, vault, player, clock, coin)
- * Splits coin to exact deposit amount before calling deposit
+ * Merges coins if needed, then splits to exact deposit amount before calling deposit
  */
 export function buildDepositTx(params: {
   roomId: string;
   vaultId: string;
   playerPositionId: string;
   coinObjectId: string;
+  coinsToMerge?: string[]; // Additional coins to merge into primary coin
   clockId: string;
   depositAmount: number; // Amount to deposit (from room config)
 }): Transaction {
   const tx = new Transaction();
 
-  // Split exact amount from user's coin
-  const [depositCoin] = tx.splitCoins(tx.object(params.coinObjectId), [params.depositAmount]);
+  // Start with primary coin
+  let primaryCoin = tx.object(params.coinObjectId);
+
+  // Merge additional coins into primary if provided
+  if (params.coinsToMerge && params.coinsToMerge.length > 0) {
+    const coinsToMergeObjects = params.coinsToMerge.map(id => tx.object(id));
+    tx.mergeCoins(primaryCoin, coinsToMergeObjects);
+  }
+
+  // Split exact amount from the (potentially merged) coin
+  const [depositCoin] = tx.splitCoins(primaryCoin, [params.depositAmount]);
 
   tx.moveCall({
     target: `${PACKAGE_ID}::money_race::deposit`,

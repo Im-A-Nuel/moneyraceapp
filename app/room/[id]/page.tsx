@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { roomAPI, usdcAPI, playerAPI, executeSponsoredTransaction, getSponsorAddress } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { getAvailableCoin } from "@/lib/sui-utils";
+import { getCoinsForAmount } from "@/lib/sui-utils";
 import { DEFAULT_COIN_TYPE, MIN_BALANCE_USDC, SUI_CLOCK_ID } from "@/lib/constants";
 import { buildJoinRoomTx, buildDepositTx, buildClaimTx } from "@/lib/tx-builder";
 import { buildSponsoredTx } from "@/lib/zklogin-tx";
@@ -56,7 +56,6 @@ export default function RoomDetail() {
   const roomId = params?.id as string;
   const { user } = useAuthStore();
 
-  const [depositAmount, setDepositAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [roomData, setRoomData] = useState<any>(null);
@@ -74,6 +73,8 @@ export default function RoomDetail() {
     periodLengthMs: number;
     isTestMode: boolean;
   } | null>(null);
+  const [hasDepositedThisPeriod, setHasDepositedThisPeriod] = useState(false);
+  const [showFinalizeButton, setShowFinalizeButton] = useState(false);
 
   // Fetch room data on mount and check if user already joined
   useEffect(() => {
@@ -108,8 +109,10 @@ export default function RoomDetail() {
       setPeriodInfo(prev => {
         if (!prev) return null;
         if (prev.timeUntilNextPeriod <= 0) {
-          // Period changed, refresh room data
+          // Period changed, refresh room data and history
+          setHasDepositedThisPeriod(false); // Reset deposit status for new period
           fetchRoomData();
+          fetchHistory(); // Refresh history to check deposit status for new period
           return prev;
         }
         return {
@@ -121,6 +124,13 @@ export default function RoomDetail() {
 
     return () => clearInterval(timer);
   }, [periodInfo?.currentPeriod]);
+
+  // Refetch participants when roomData becomes available to recalculate scores correctly
+  useEffect(() => {
+    if (roomId && roomData?.totalPeriods !== undefined) {
+      fetchParticipants();
+    }
+  }, [roomData?.totalPeriods]);
 
   // Also check from participants list after fetching
   useEffect(() => {
@@ -137,19 +147,104 @@ export default function RoomDetail() {
     }
   }, [participants, user?.address]);
 
+  // Check if user has deposited for the current period
+  useEffect(() => {
+    if (!user?.address || !history.length || periodInfo?.currentPeriod === undefined) {
+      setHasDepositedThisPeriod(false);
+      return;
+    }
+
+    // Check if there's a deposit from this user for the current period
+    const currentPeriod = periodInfo.currentPeriod;
+    const userDeposits = history.filter(tx =>
+      tx.type === 'deposit' &&
+      tx.player?.toLowerCase() === user.address.toLowerCase() &&
+      tx.period === currentPeriod
+    );
+
+    // Also check for join transaction (join counts as first deposit, period 0)
+    const userJoins = history.filter(tx =>
+      tx.type === 'join' &&
+      tx.player?.toLowerCase() === user.address.toLowerCase()
+    );
+
+    // If current period is 0, check if user has joined (join = first deposit)
+    // If current period > 0, check if user has deposited for this period
+    const hasDeposited = currentPeriod === 0
+      ? userJoins.length > 0
+      : userDeposits.length > 0;
+
+    setHasDepositedThisPeriod(hasDeposited);
+    console.log(`User deposit check - Period: ${currentPeriod}, Has deposited: ${hasDeposited}`);
+  }, [history, user?.address, periodInfo?.currentPeriod]);
+
+  // Show finalize button with 3 second delay when room periods are complete
+  useEffect(() => {
+    const shouldShowFinalize =
+      roomData?.status === "active" &&
+      isJoined &&
+      roomData?.currentPeriod >= roomData?.totalPeriods;
+
+    if (shouldShowFinalize && !showFinalizeButton) {
+      // 3 second delay before showing finalize button
+      const timer = setTimeout(() => {
+        setShowFinalizeButton(true);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [roomData?.status, roomData?.currentPeriod, roomData?.totalPeriods, isJoined, showFinalizeButton]);
+
   const fetchParticipants = async () => {
     if (!roomId) return;
     try {
-      const response = await roomAPI.getParticipants(roomId);
-      if (response.success && response.participants) {
-        // Transform to display format
-        const USDC_DECIMALS = 1_000_000;
-        const formattedParticipants = response.participants.map((p: any) => ({
-          address: p.address,
-          totalDeposit: p.amount / USDC_DECIMALS,
-          depositsCount: 1, // Initial join = 1 deposit
-          consistencyScore: 100, // Default score
-        }));
+      // Fetch both participants and history together
+      const [participantsResponse, historyResponse] = await Promise.all([
+        roomAPI.getParticipants(roomId),
+        roomAPI.getHistory(roomId)
+      ]);
+
+      // Process history first to count deposits per user
+      const historyData = historyResponse.success ? historyResponse.history : [];
+      setHistory(historyData);
+
+      // Count deposits (including join as first deposit) per participant
+      const depositCounts: Record<string, number> = {};
+      const totalAmounts: Record<string, number> = {};
+      const USDC_DECIMALS = 1_000_000;
+
+      historyData.forEach((tx: any) => {
+        const addr = tx.player?.toLowerCase();
+        if (!addr) return;
+
+        // Count both 'join' and 'deposit' - join is the first deposit (period 0)
+        if (tx.type === 'join' || tx.type === 'deposit') {
+          depositCounts[addr] = (depositCounts[addr] || 0) + 1;
+          totalAmounts[addr] = (totalAmounts[addr] || 0) + (tx.amount / USDC_DECIMALS);
+        }
+      });
+
+      if (participantsResponse.success && participantsResponse.participants) {
+        // Expected deposits = total periods (join at period 0 counts as first deposit)
+        const totalPeriods = roomData?.totalPeriods || 3;
+
+        const formattedParticipants = participantsResponse.participants.map((p: any) => {
+          const addr = p.address.toLowerCase();
+          const depositsCount = depositCounts[addr] || 1; // At least 1 for joining
+          const totalDeposit = totalAmounts[addr] || (p.amount / USDC_DECIMALS);
+
+          // Consistency score = (actual deposits / total periods) * 100
+          const consistencyScore = totalPeriods > 0
+            ? Math.min(100, Math.round((depositsCount / totalPeriods) * 100))
+            : 100;
+
+          return {
+            address: p.address,
+            totalDeposit,
+            depositsCount,
+            consistencyScore,
+          };
+        });
         setParticipants(formattedParticipants);
       }
     } catch (error) {
@@ -215,7 +310,7 @@ export default function RoomDetail() {
         // Parse status - can be number or string
         const statusValue = parseInt(blockchainData.status);
         console.log("Room status value:", statusValue, "raw:", blockchainData.status);
-        
+
         let roomStatus: "pending" | "active" | "finished";
         if (statusValue === 1) {
           roomStatus = "active";
@@ -319,30 +414,43 @@ export default function RoomDetail() {
     setError("");
 
     try {
-      // Get USDC coin object from user's wallet
-      console.log("Fetching USDC coin objects for address:", user.address);
-      console.log("Coin type:", DEFAULT_COIN_TYPE);
-      const coinObjectId = await getAvailableCoin(user.address, MIN_BALANCE_USDC, DEFAULT_COIN_TYPE);
+      // Get deposit amount from room data (already in raw blockchain format with decimals)
+      const depositAmount = BigInt(roomData?.deposit_amount || 10_000_000); // Default 10 USDC
+      console.log("Deposit amount (raw blockchain format):", depositAmount.toString());
 
-      if (!coinObjectId) {
-        setError("No USDC coins found in your wallet. Please make sure you have USDC mock tokens.");
+      // Get coins that can be merged to meet the deposit amount
+      console.log("Fetching USDC coins for address:", user.address);
+      const coinResult = await getCoinsForAmount(user.address, depositAmount, DEFAULT_COIN_TYPE);
+      console.log("Coin result:", {
+        totalBalance: coinResult.totalBalance.toString(),
+        canMeetAmount: coinResult.canMeetAmount,
+        primaryCoin: coinResult.primaryCoin,
+        coinsToMerge: coinResult.coinsToMerge.length
+      });
+
+      if (!coinResult.canMeetAmount || !coinResult.primaryCoin) {
+        const weeklyTarget = roomData?.deposit_amount ? Number(roomData.deposit_amount) / 1_000_000 : 10;
+        const totalUsdc = Number(coinResult.totalBalance) / 1_000_000;
+        setError(`Insufficient USDC balance. Need $${weeklyTarget} but only have $${totalUsdc.toFixed(2)} total.`);
         setLoading(false);
         return;
       }
 
-      console.log("Using USDC coin object:", coinObjectId);
+      console.log("Primary coin:", coinResult.primaryCoin);
+      if (coinResult.coinsToMerge.length > 0) {
+        console.log("Merging", coinResult.coinsToMerge.length, "additional coins");
+      }
 
-      // Get deposit amount from room data (default to 10 if not available)
-      const depositAmount = roomData?.deposit_amount || room?.deposit_amount || 10;
-      console.log("Deposit amount:", depositAmount);
+      const depositAmountNumber = Number(depositAmount);
 
-      // Build the transaction on frontend
+      // Build the transaction with coin merging support
       const tx = buildJoinRoomTx({
         roomId: roomId,
         vaultId: roomData.vaultId,
-        coinObjectId: coinObjectId,
+        coinObjectId: coinResult.primaryCoin,
+        coinsToMerge: coinResult.coinsToMerge,
         clockId: SUI_CLOCK_ID,
-        depositAmount: depositAmount,
+        depositAmount: depositAmountNumber,
         password: roomPassword || undefined, // Pass password if room is private
       });
 
@@ -397,11 +505,6 @@ export default function RoomDetail() {
   };
 
   const handleDeposit = async () => {
-    if (!depositAmount || Number(depositAmount) <= 0) {
-      setError("Please enter a valid amount");
-      return;
-    }
-
     // Check if vaultId is available from room data
     if (!roomData?.vaultId) {
       setError("Vault ID not found. Please refresh the page or try again.");
@@ -423,29 +526,40 @@ export default function RoomDetail() {
     setError("");
 
     try {
-      // Get USDC coin object from user's wallet
-      console.log("Fetching USDC coin objects for deposit from:", user.address);
-      console.log("Coin type:", DEFAULT_COIN_TYPE);
-      const coinObjectId = await getAvailableCoin(user.address, MIN_BALANCE_USDC, DEFAULT_COIN_TYPE);
+      // Get deposit amount from room data (already in raw blockchain format with decimals)
+      const depositAmountValue = roomData?.deposit_amount || 10_000_000; // Default 10 USDC
+      console.log("Deposit amount (raw blockchain format):", depositAmountValue);
 
-      if (!coinObjectId) {
-        setError("No USDC coins found in your wallet. Please make sure you have USDC mock tokens.");
+      // Get coins that can be merged to meet the deposit amount
+      console.log("Fetching USDC coins for deposit from:", user.address);
+      const coinResult = await getCoinsForAmount(user.address, BigInt(depositAmountValue), DEFAULT_COIN_TYPE);
+      console.log("Coin result:", {
+        totalBalance: coinResult.totalBalance.toString(),
+        canMeetAmount: coinResult.canMeetAmount,
+        primaryCoin: coinResult.primaryCoin,
+        coinsToMerge: coinResult.coinsToMerge.length
+      });
+
+      if (!coinResult.canMeetAmount || !coinResult.primaryCoin) {
+        const weeklyTarget = depositAmountValue / 1_000_000;
+        const totalUsdc = Number(coinResult.totalBalance) / 1_000_000;
+        setError(`Insufficient USDC balance. Need $${weeklyTarget} but only have $${totalUsdc.toFixed(2)} total.`);
         setLoading(false);
         return;
       }
 
-      console.log("Using USDC coin object for deposit:", coinObjectId);
+      console.log("Primary coin:", coinResult.primaryCoin);
+      if (coinResult.coinsToMerge.length > 0) {
+        console.log("Merging", coinResult.coinsToMerge.length, "additional coins");
+      }
 
-      // Get deposit amount from room data
-      const depositAmountValue = roomData?.deposit_amount || room?.deposit_amount || 10;
-      console.log("Deposit amount:", depositAmountValue);
-
-      // Build the deposit transaction on frontend
+      // Build the deposit transaction with coin merging support
       const tx = buildDepositTx({
         roomId: roomId,
         vaultId: roomData.vaultId,
         playerPositionId: playerPositionId,
-        coinObjectId: coinObjectId,
+        coinObjectId: coinResult.primaryCoin,
+        coinsToMerge: coinResult.coinsToMerge,
         clockId: SUI_CLOCK_ID,
         depositAmount: depositAmountValue,
       });
@@ -461,9 +575,7 @@ export default function RoomDetail() {
 
       if (response.success) {
         alert("Deposit successful!");
-        setDepositAmount("");
-        fetchRoomData(); // Refresh room data
-        fetchUSDCBalance(); // Refresh USDC balance
+        window.location.reload(); // Refresh page to update all data
       } else {
         setError(response.error || "Failed to deposit");
       }
@@ -524,13 +636,8 @@ export default function RoomDetail() {
       });
 
       if (response.success) {
-        setHasClaimed(true); // Update UI to show claimed status
         alert("Rewards claimed successfully!");
-        fetchRoomData(); // Refresh room data
-        // Refresh player position to confirm claimed status
-        if (playerPositionId) {
-          fetchPlayerPosition(playerPositionId);
-        }
+        window.location.reload(); // Refresh page to update all data
       } else {
         setError(response.error || "Failed to claim rewards");
       }
@@ -555,15 +662,18 @@ export default function RoomDetail() {
       const response = await roomAPI.finalizeRoom(roomId);
 
       if (response.success) {
-        alert("Room finalized successfully! You can now claim your rewards.");
-        fetchRoomData(); // Refresh room data to update status
+        alert("Room finalized successfully! Page will refresh...");
+        // Refresh the page to get updated room status
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         setError(response.error || "Failed to finalize room");
+        setLoading(false);
       }
     } catch (err: any) {
       console.error("Finalize error:", err);
       setError(err.response?.data?.error || err.message || "Failed to finalize room");
-    } finally {
       setLoading(false);
     }
   };
@@ -629,23 +739,22 @@ export default function RoomDetail() {
               </p>
             </div>
             <span
-              className={`text-xs px-3 py-1 rounded ${
-                room.currentPeriod >= room.totalPeriods
-                  ? "bg-purple-100 text-purple-800"
-                  : room.status === "active"
+              className={`text-xs px-3 py-1 rounded ${room.currentPeriod >= room.totalPeriods
+                ? "bg-purple-100 text-purple-800"
+                : room.status === "active"
                   ? "bg-green-100 text-green-800"
                   : room.status === "pending"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
             >
               {room.currentPeriod >= room.totalPeriods
                 ? "✓ Completed"
                 : room.status === "active"
-                ? "Active"
-                : room.status === "pending"
-                ? "Pending"
-                : "Finished"}
+                  ? "Active"
+                  : room.status === "pending"
+                    ? "Pending"
+                    : "Finished"}
             </span>
           </div>
         </div>
@@ -738,54 +847,86 @@ export default function RoomDetail() {
             )}
 
             {/* Join Room Button - Show if not joined yet */}
-            {room.status === "active" && !isJoined && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Join This Room</CardTitle>
-                  <CardDescription>
-                    {room.isPrivate ? "🔒 Private Room - Password Required" : "Join to start saving and compete with others"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                    <p className="text-sm text-blue-800">
-                      💡 By joining, you'll get a player position and can start making deposits.
+            {room.status === "active" && !isJoined && (() => {
+              const userBalance = parseFloat(usdcBalance) || 0;
+              const requiredAmount = room.weeklyTarget || 10;
+              const hasEnoughBalance = userBalance >= requiredAmount;
+              const roomAlreadyStarted = room.currentPeriod > 0;
+
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Join This Room</CardTitle>
+                    <CardDescription>
+                      {room.isPrivate ? "🔒 Private Room - Password Required" : "Join to start saving and compete with others"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Room Already Started Warning */}
+                    {roomAlreadyStarted ? (
+                      <div className="bg-orange-50 border border-orange-200 rounded p-3">
+                        <p className="text-sm text-orange-800 font-semibold">⏰ Room Already Started</p>
+                        <p className="text-xs text-orange-600 mt-1">
+                          This room is currently in Period {room.currentPeriod}. You can only join rooms during Period 0.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                        <p className="text-sm text-blue-800">
+                          💡 Joining requires an initial deposit of <strong>${requiredAmount}</strong>.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Balance Check Warning - only show if room hasn't started */}
+                    {!roomAlreadyStarted && !hasEnoughBalance && (
+                      <div className="bg-red-50 border border-red-200 rounded p-3">
+                        <p className="text-sm text-red-800 font-semibold">⚠️ Insufficient Balance</p>
+                        <p className="text-xs text-red-600 mt-1">
+                          You need at least <strong>${requiredAmount}</strong> USDC but only have <strong>${usdcBalance}</strong>.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Password input for private rooms - only show if room hasn't started */}
+                    {!roomAlreadyStarted && room.isPrivate && (
+                      <div>
+                        <label className="text-sm font-medium">Room Password</label>
+                        <Input
+                          type="password"
+                          placeholder="Enter room password"
+                          value={roomPassword}
+                          onChange={(e) => setRoomPassword(e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                    )}
+
+                    <Button
+                      className="w-full"
+                      onClick={handleJoinRoom}
+                      disabled={loading || roomAlreadyStarted || !hasEnoughBalance || (room.isPrivate && !roomPassword)}
+                    >
+                      {roomAlreadyStarted
+                        ? "🚫 Room Already Started"
+                        : loading
+                          ? "Joining..."
+                          : `🚀 Join Room + Deposit $${requiredAmount}`
+                      }
+                    </Button>
+                    <p className="text-xs text-gray-500">
+                      ⚠️ Gasless transaction powered by zkLogin
                     </p>
-                  </div>
+                    <p className="text-xs text-green-600">
+                      Your balance: <strong>${usdcBalance}</strong> USDC
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
-                  {/* Password input for private rooms */}
-                  {room.isPrivate && (
-                    <div>
-                      <label className="text-sm font-medium">Room Password</label>
-                      <Input
-                        type="password"
-                        placeholder="Enter room password"
-                        value={roomPassword}
-                        onChange={(e) => setRoomPassword(e.target.value)}
-                        disabled={loading}
-                      />
-                    </div>
-                  )}
-
-                  <Button
-                    className="w-full"
-                    onClick={handleJoinRoom}
-                    disabled={loading || (room.isPrivate && !roomPassword)}
-                  >
-                    {loading ? "Joining..." : "Join Room"}
-                  </Button>
-                  <p className="text-xs text-gray-500">
-                    ⚠️ Gasless transaction powered by zkLogin
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    ℹ️ Make sure you have USDC mock tokens in your wallet for joining and deposits.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Room Completed Card - Show when all periods are done but room not finalized */}
-            {room.status === "active" && isJoined && room.currentPeriod >= room.totalPeriods && (
+            {/* Room Completed Card - Show when all periods are done (active or finished status) */}
+            {isJoined && room.currentPeriod >= room.totalPeriods && (room.status === "active" || room.status === "finished") && (
               <Card className="border-green-300 bg-green-50">
                 <CardHeader>
                   <CardTitle className="text-green-800">🎉 Room Completed!</CardTitle>
@@ -799,33 +940,66 @@ export default function RoomDetail() {
                         You have successfully claimed your principal and rewards.
                       </p>
                     </div>
-                  ) : (
+                  ) : room.status === "finished" ? (
+                    // Room is finalized, show claim button only
                     <>
                       <div className="bg-white border border-green-200 rounded p-3">
                         <p className="text-sm text-green-800 mb-2">
                           <strong>Congratulations!</strong> You have completed this saving room.
                         </p>
                         <p className="text-xs text-gray-600">
-                          The room admin needs to finalize the room before rewards can be claimed.
-                          Please wait for the finalization process.
-                        </p>
-                      </div>
-
-                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                        <p className="text-xs text-yellow-800">
-                          ⏳ <strong>Waiting for finalization...</strong><br />
-                          Once finalized, you'll be able to claim your deposits + rewards.
+                          ✅ Room has been finalized. You can now claim your rewards!
                         </p>
                       </div>
 
                       <Button
                         className="w-full"
-                        variant="outline"
                         onClick={handleClaimReward}
                         disabled={loading}
                       >
-                        {loading ? "Processing..." : "Try Claim (if finalized)"}
+                        {loading ? "Processing..." : "💰 Claim Rewards"}
                       </Button>
+                    </>
+                  ) : !showFinalizeButton ? (
+                    // Waiting for 3 second delay before showing finalize button
+                    <div className="bg-blue-50 border border-blue-200 rounded p-4 text-center">
+                      <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mb-2"></div>
+                      <p className="text-blue-800 font-semibold">Please wait...</p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        Preparing finalize option...
+                      </p>
+                    </div>
+                  ) : (
+                    // Room not finalized yet, show manual finalize button
+                    <>
+                      <div className="bg-white border border-green-200 rounded p-3">
+                        <p className="text-sm text-green-800 mb-2">
+                          <strong>Congratulations!</strong> You have completed this saving room.
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Click the button below to finalize and claim your rewards.
+                        </p>
+                      </div>
+
+                      {error && (
+                        <div className="bg-red-50 border border-red-200 rounded p-3">
+                          <p className="text-xs text-red-800">
+                            ⚠️ {error}
+                          </p>
+                        </div>
+                      )}
+
+                      <Button
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        onClick={handleFinalizeRoom}
+                        disabled={loading}
+                      >
+                        {loading ? "Finalizing..." : "🔧 Finalize Room"}
+                      </Button>
+
+                      <p className="text-xs text-gray-500 text-center">
+                        After finalizing, the claim button will appear
+                      </p>
                     </>
                   )}
                 </CardContent>
@@ -868,21 +1042,54 @@ export default function RoomDetail() {
                     </div>
                   )}
 
-                  <div>
-                    <Input
-                      type="number"
-                      placeholder="Amount ($)"
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={handleDeposit}
-                    disabled={!depositAmount || loading}
-                  >
-                    {loading ? "Processing..." : `Deposit for ${periodInfo?.isTestMode ? 'Period' : 'Week'} ${periodInfo?.currentPeriod || 0}`}
-                  </Button>
+                  {/* Already Deposited Message */}
+                  {hasDepositedThisPeriod ? (
+                    <div className="bg-green-100 border border-green-300 rounded p-4 text-center">
+                      <p className="text-green-800 font-semibold">✅ Deposit Complete!</p>
+                      <p className="text-sm text-green-600 mt-1">
+                        You have already deposited for {periodInfo?.isTestMode ? 'Period' : 'Week'} {periodInfo?.currentPeriod || 0}.
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Next deposit available in: <span className="font-bold">{formatCountdown(periodInfo?.timeUntilNextPeriod || 0)}</span>
+                      </p>
+                    </div>
+                  ) : (() => {
+                    const userBalance = parseFloat(usdcBalance) || 0;
+                    const requiredAmount = room.weeklyTarget || 10;
+                    const hasEnoughBalance = userBalance >= requiredAmount;
+
+                    return (
+                      <>
+                        <div className="bg-blue-50 border border-blue-200 rounded p-3 text-center">
+                          <p className="text-sm text-blue-800">
+                            Deposit amount: <span className="font-bold">${requiredAmount}</span>
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            Your balance: <span className="font-semibold">${usdcBalance}</span> USDC
+                          </p>
+                        </div>
+
+                        {/* Balance Check Warning */}
+                        {!hasEnoughBalance && (
+                          <div className="bg-red-50 border border-red-200 rounded p-3">
+                            <p className="text-sm text-red-800 font-semibold">⚠️ Insufficient Balance</p>
+                            <p className="text-xs text-red-600 mt-1">
+                              You need <strong>${requiredAmount}</strong> USDC but only have <strong>${usdcBalance}</strong>.
+                            </p>
+                          </div>
+                        )}
+
+                        <Button
+                          className="w-full"
+                          onClick={handleDeposit}
+                          disabled={loading || !hasEnoughBalance}
+                        >
+                          {loading ? "Processing..." : `💰 Deposit $${requiredAmount} for ${periodInfo?.isTestMode ? 'Period' : 'Week'} ${periodInfo?.currentPeriod || 0}`}
+                        </Button>
+                      </>
+                    );
+                  })()}
+
                   <p className="text-xs text-gray-500">
                     ⚠️ Gasless transaction powered by zkLogin
                   </p>
@@ -893,41 +1100,20 @@ export default function RoomDetail() {
               </Card>
             )}
 
-            {room.status === "finished" && (
+            {/* Fallback claim card for finished rooms when user hasn't joined via this UI */}
+            {room.status === "finished" && !isJoined && (
               <Card>
                 <CardHeader>
                   <CardTitle>Claim Rewards</CardTitle>
                   <CardDescription>Room has ended</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {hasClaimed ? (
-                    <div className="bg-green-50 border border-green-200 rounded p-4 text-center">
-                      <p className="text-green-800 font-semibold">✅ Rewards Claimed!</p>
-                      <p className="text-sm text-green-600 mt-1">
-                        You have successfully claimed your principal and rewards.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Your Deposit</span>
-                          <span className="font-semibold">$300</span>
-                        </div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Your Reward</span>
-                          <span className="font-semibold text-green-600">$30</span>
-                        </div>
-                        <div className="flex justify-between text-sm font-bold pt-2 border-t">
-                          <span>Total</span>
-                          <span className="text-blue-600">$330</span>
-                        </div>
-                      </div>
-                      <Button className="w-full" onClick={handleClaimReward} disabled={loading}>
-                        {loading ? "Processing..." : "Claim Rewards"}
-                      </Button>
-                    </>
-                  )}
+                  <div className="bg-gray-50 border border-gray-200 rounded p-4 text-center">
+                    <p className="text-gray-600">You did not join this room.</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Only participants who joined can claim rewards.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -983,29 +1169,29 @@ export default function RoomDetail() {
                         participants
                           .sort((a: Participant, b: Participant) => b.consistencyScore - a.consistencyScore)
                           .map((participant: Participant, index: number) => (
-                          <div
-                            key={participant.address}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-gray-400">#{index + 1}</span>
-                              <div>
-                                <div className="font-mono text-sm">
-                                  {participant.address.slice(0, 8)}...{participant.address.slice(-6)}
+                            <div
+                              key={participant.address}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="font-bold text-gray-400">#{index + 1}</span>
+                                <div>
+                                  <div className="font-mono text-sm">
+                                    {participant.address.slice(0, 8)}...{participant.address.slice(-6)}
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    {participant.depositsCount} deposits
+                                  </div>
                                 </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold">${participant.totalDeposit.toFixed(2)}</div>
                                 <div className="text-xs text-gray-600">
-                                  {participant.depositsCount} deposits
+                                  {participant.consistencyScore}% score
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="font-semibold">${participant.totalDeposit.toFixed(2)}</div>
-                              <div className="text-xs text-gray-600">
-                                {participant.consistencyScore}% score
-                              </div>
-                            </div>
-                          </div>
-                        ))
+                          ))
                       ) : (
                         <div className="text-center py-8 text-gray-500">
                           <p>No participants yet</p>
@@ -1063,7 +1249,7 @@ export default function RoomDetail() {
                           const amount = (tx.amount / USDC_DECIMALS).toFixed(2);
                           const date = new Date(tx.timestamp);
                           const timeAgo = getTimeAgo(date);
-                          
+
                           return (
                             <div key={`${tx.txDigest}-${index}`} className="flex justify-between p-3 bg-gray-50 rounded text-sm">
                               <div>
@@ -1084,7 +1270,7 @@ export default function RoomDetail() {
                               <div className="text-right">
                                 <div className="font-semibold">${amount}</div>
                                 <div className="text-gray-600 text-xs">{timeAgo}</div>
-                                <a 
+                                <a
                                   href={`https://suiscan.xyz/testnet/tx/${tx.txDigest}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
