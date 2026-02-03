@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { GoogleOAuthProvider } from "@/components/GoogleOAuthProvider";
+import { WalletProvider } from "@/components/WalletProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,9 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <GoogleOAuthProvider>
-          {children}
-        </GoogleOAuthProvider>
+        <WalletProvider>
+          <GoogleOAuthProvider>
+            {children}
+          </GoogleOAuthProvider>
+        </WalletProvider>
       </body>
     </html>
   );

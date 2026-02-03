@@ -196,6 +196,29 @@
     transform: translateY(-2px) !important;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
   }
+
+  /* Sui Wallet Button Styling */
+  .sui-wallet-button button {
+    @apply px-8 py-3 rounded-lg font-bold transition-all duration-200;
+    background: linear-gradient(135deg,
+      #C9944A 0%,
+      #A06B1A 100%
+    ) !important;
+    color: #3A2610 !important;
+    border: 1px solid rgba(212, 162, 74, 0.4) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    min-width: 180px;
+  }
+
+  .sui-wallet-button button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(123, 84, 47, 0.35) !important;
+  }
+
+  .sui-wallet-button button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 /* Animations */

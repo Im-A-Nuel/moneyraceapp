@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { roomAPI, usdcAPI } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useDisconnectWallet } from "@mysten/dapp-kit";
 
 interface Room {
   id: string;
@@ -40,6 +41,7 @@ interface MyRoom {
 export default function Dashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { mutate: disconnect } = useDisconnectWallet();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [myRooms, setMyRooms] = useState<MyRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,11 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
+    // Disconnect wallet if connected
+    disconnect();
+    // Clear auth state
     logout();
+    // Redirect to landing page
     router.push('/');
   };
 

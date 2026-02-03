@@ -6,16 +6,17 @@ import { Header } from "@/components/ui/Header";
 import { Footer } from "@/components/ui/Footer";
 import { GoldCoin } from "@/components/ui/GoldCoin";
 import { FeatureCard } from "@/components/ui/FeatureCard";
-import { HeroInput } from "@/components/ui/HeroInput";
 import { GoogleOAuthProvider } from "@/components/GoogleOAuthProvider";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "@/store/auth.store";
 import { authAPI } from "@/lib/api";
 import { getOrCreateKeypairForUser } from "@/lib/keypair";
+import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
 
 export default function Home() {
   const router = useRouter();
   const { login, isAuthenticated } = useAuthStore();
+  const currentAccount = useCurrentAccount();
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
@@ -24,10 +25,38 @@ export default function Home() {
     }
   }, [isAuthenticated, router]);
 
+  // Handle wallet connection - only auto-login if wallet is connected and user is not authenticated
+  useEffect(() => {
+    // Only proceed if there's a connected wallet and user is NOT authenticated
+    if (currentAccount?.address && !isAuthenticated) {
+      // Small delay to ensure this is intentional connection, not auto-connect on page load
+      const timer = setTimeout(() => {
+        try {
+          console.log('Wallet connected:', currentAccount.address);
+          // User connected wallet, login with wallet address
+          login(
+            {
+              id: currentAccount.address,
+              email: '',
+              name: `Wallet User`,
+              address: currentAccount.address,
+            },
+            '' // No token for wallet users
+          );
+          router.push('/dashboard');
+        } catch (error) {
+          console.error('Wallet login error:', error);
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentAccount?.address, isAuthenticated, login, router]);
+
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       const idToken = credentialResponse.credential;
-      
+
       // Decode JWT to get user info
       const base64Url = idToken.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -124,12 +153,10 @@ export default function Home() {
 
                   <span className="text-amber-100/70 text-sm font-bold uppercase tracking-wider">OR</span>
 
-                  <button className="btn-wallet whitespace-nowrap px-8 py-3">
-                    <span className="font-bold">Wallet</span>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                  </button>
+                  {/* Sui Wallet Connect Button */}
+                  <div className="sui-wallet-button">
+                    <ConnectButton />
+                  </div>
                 </div>
               </div>
             </div>
@@ -184,12 +211,10 @@ export default function Home() {
 
               <span className="text-amber-100/70 text-sm font-bold uppercase tracking-wider">OR</span>
 
-              <button className="btn-wallet whitespace-nowrap px-8 py-3">
-                <span className="font-bold">Wallet</span>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-              </button>
+              {/* Sui Wallet Connect Button */}
+              <div className="sui-wallet-button">
+                <ConnectButton />
+              </div>
             </div>
           </div>
         </section>
