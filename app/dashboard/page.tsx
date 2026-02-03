@@ -111,33 +111,70 @@ export default function Dashboard() {
 
       if (response.success && response.rooms) {
         // Map backend room data to frontend format
-        const mappedRooms = response.rooms.map((room: any) => ({
-          id: room.roomId, // Backend uses 'roomId'
-          name: `Room #${room.roomId.slice(0, 8)}...`, // Generate name from ID
-          duration: room.totalPeriods || 0,
-          weeklyTarget: room.depositAmount / 1_000_000 || 0, // Convert from USDC decimals (6 decimals)
-          currentPeriod: 0, // TODO: Query from blockchain
-          totalPeriods: room.totalPeriods || 0,
-          participants: 0, // TODO: Query from blockchain
-          myDeposit: 0, // TODO: Calculate from user's position
-          totalDeposit: 0, // TODO: Query from blockchain
-          strategy: `Strategy ${room.strategyId}`,
-          status: "active", // All created rooms are active by default
-        }));
+        const mappedRooms = response.rooms.map((room: any) => {
+          // Calculate current period
+          const startTimeMs = Number(room.startTimeMs) || Date.now();
+          const periodLengthMs = Number(room.periodLengthMs) || (7 * 24 * 60 * 60 * 1000);
+          const now = Date.now();
+          const elapsedMs = now - startTimeMs;
+
+          let currentPeriod = 0;
+          if (elapsedMs > 0) {
+            currentPeriod = Math.floor(elapsedMs / periodLengthMs);
+          }
+
+          const totalPeriods = room.totalPeriods || 0;
+
+          // Cap currentPeriod at totalPeriods
+          const displayPeriod = Math.min(currentPeriod, totalPeriods);
+
+          // Determine status
+          const isEnded = currentPeriod >= totalPeriods;
+
+          return {
+            id: room.roomId, // Backend uses 'roomId'
+            name: `Room #${room.roomId.slice(0, 8)}...`, // Generate name from ID
+            duration: totalPeriods,
+            weeklyTarget: room.depositAmount / 1_000_000 || 0, // Convert from USDC decimals (6 decimals)
+            currentPeriod: displayPeriod,
+            totalPeriods: totalPeriods,
+            participants: 0, // TODO: Query from blockchain
+            myDeposit: 0, // TODO: Calculate from user's position
+            totalDeposit: 0, // TODO: Query from blockchain
+            strategy: `Strategy ${room.strategyId}`,
+            status: isEnded ? "ended" : "active",
+          };
+        });
+
         setRooms(mappedRooms);
       } else {
-        // Show message that no rooms exist yet
         console.log('No rooms found:', response.message);
         setRooms([]);
       }
     } catch (error: any) {
       console.error('Failed to fetch rooms:', error);
-      // On error, show empty state
       setRooms([]);
     } finally {
       setLoading(false);
     }
   };
+
+  // Also need to fetch MyRooms inside fetchRooms or ensure they are synced. 
+  // Actually simpler: Update rooms state when myRooms changes.
+  useEffect(() => {
+    if (myRooms.length > 0 && rooms.length > 0) {
+      setRooms(prevRooms => prevRooms.map(room => {
+        const myRoom = myRooms.find(mr => mr.roomId === room.id);
+        if (myRoom) {
+          return {
+            ...room,
+            myDeposit: myRoom.myDeposit
+          };
+        }
+        return room;
+      }));
+    }
+  }, [myRooms]);
 
   const activeRooms = rooms.filter((r) => r.status === "active");
   const endedRooms = rooms.filter((r) => r.status === "ended");
@@ -357,13 +394,12 @@ export default function Dashboard() {
                           {room.depositsCount} deposits made • Strategy {room.strategyId}
                         </CardDescription>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        room.status === 0 
-                          ? 'bg-green-100 text-green-800' 
-                          : room.status === 1 
+                      <span className={`text-xs px-2 py-1 rounded ${room.status === 0
+                        ? 'bg-green-100 text-green-800'
+                        : room.status === 1
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-gray-100 text-gray-800'
-                      }`}>
+                        }`}>
                         {room.status === 0 ? 'Active' : room.status === 1 ? 'Claiming' : 'Ended'}
                       </span>
                     </div>
@@ -373,7 +409,7 @@ export default function Dashboard() {
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Your Total Deposit</span>
                         <span className="font-semibold text-green-600">
-                          ${(room.myDeposit / 1_000_000).toFixed(2)} USDC
+                          ${room.myDeposit} USDC
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
