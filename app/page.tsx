@@ -1,125 +1,212 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { GoogleLoginButton } from "@/components/GoogleLoginButton";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Header } from "@/components/ui/Header";
+import { Footer } from "@/components/ui/Footer";
+import { GoldCoin } from "@/components/ui/GoldCoin";
+import { FeatureCard } from "@/components/ui/FeatureCard";
+import { HeroInput } from "@/components/ui/HeroInput";
+import { GoogleOAuthProvider } from "@/components/GoogleOAuthProvider";
+import { GoogleLogin } from "@react-oauth/google";
+import { useAuthStore } from "@/store/auth.store";
+import { authAPI } from "@/lib/api";
+import { getOrCreateKeypairForUser } from "@/lib/keypair";
 
 export default function Home() {
   const router = useRouter();
+  const { login, isAuthenticated } = useAuthStore();
+
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      const idToken = credentialResponse.credential;
+      
+      // Decode JWT to get user info
+      const base64Url = idToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(base64));
+
+      // Send ID Token to backend for verification
+      const authResponse = await authAPI.login(idToken);
+
+      if (authResponse.success && authResponse.user) {
+        // Generate deterministic keypair from Google sub
+        const keypair = await getOrCreateKeypairForUser(payload.sub);
+        const suiAddress = keypair.getPublicKey().toSuiAddress();
+
+        // Store user in zustand with deterministic address
+        login(
+          {
+            id: authResponse.user.sub,
+            email: payload.email,
+            name: payload.name || payload.email,
+            address: suiAddress,
+            avatar: payload.picture,
+          },
+          idToken
+        );
+
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Logo/Brand */}
-          <div className="mb-8">
-            <h1 className="text-6xl font-bold text-gray-900 mb-4">
-              Money<span className="text-blue-600">Race</span>
-            </h1>
-            <p className="text-xl text-gray-600">
-              AI-Powered Saving Game on Sui Blockchain
-            </p>
-          </div>
+    <GoogleOAuthProvider>
+      <main className="min-h-screen bg-gold-gradient overflow-hidden">
+        {/* Header */}
+        <Header />
 
-          {/* Value Proposition */}
-          <div className="mb-12 space-y-4">
-            <h2 className="text-3xl font-semibold text-gray-800">
-              Save Together. Earn Rewards. Stay Consistent.
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Create saving rooms with friends, get AI-powered strategy recommendations,
-              and earn rewards based on your consistency. All secured on-chain.
-            </p>
-          </div>
+        {/* Hero Section */}
+        <section className="relative pt-20 pb-32 px-6 overflow-visible">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-16 items-center min-h-[600px]">
+              {/* Left side - Coin */}
+              <div className="flex justify-center lg:justify-start order-2 lg:order-1">
+                <div className="relative">
+                  <GoldCoin size="xl" animate={true} />
+                  {/* Shadow effect */}
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-8 rounded-full opacity-40 blur-2xl"
+                    style={{
+                      background: 'radial-gradient(ellipse, rgba(139, 112, 32, 0.6), transparent)',
+                    }}
+                  />
+                </div>
+              </div>
 
-          {/* Features Grid */}
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="text-4xl mb-4">🤖</div>
-              <h3 className="text-xl font-semibold mb-2">AI Recommendations</h3>
-              <p className="text-gray-600">
-                Get personalized saving strategies powered by AI
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="text-4xl mb-4">🔒</div>
-              <h3 className="text-xl font-semibold mb-2">On-Chain Security</h3>
-              <p className="text-gray-600">
-                Your savings secured by Sui blockchain smart contracts
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="text-4xl mb-4">🎯</div>
-              <h3 className="text-xl font-semibold mb-2">Fair Rewards</h3>
-              <p className="text-gray-600">
-                Earn rewards weighted by your consistency and participation
-              </p>
+              {/* Right side - Content */}
+              <div className="text-center lg:text-left order-1 lg:order-2 space-y-6">
+                {/* Tagline */}
+                <h1
+                  className="text-3xl md:text-5xl lg:text-5xl font-black text-white leading-tight tracking-tight"
+                  style={{
+                    fontFamily: 'Impact, Arial Black, sans-serif',
+                    textShadow: '3px 3px 6px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  &quot;SAVE TOGETHER. DECIDE YOUR<br />STRATEGY. EARN FAIRLY.&quot;
+                </h1>
+
+                {/* Subtitle */}
+                <div className="space-y-1">
+                  <p className="text-amber-100/90 text-sm md:text-base font-medium tracking-wide">
+                    A GROUP SAVING GAME WHERE <span className="text-white font-bold">AI</span> HELPS YOU CHOOSE
+                  </p>
+                  <p className="text-amber-100/80 text-sm tracking-wide">
+                    — AND REWARDS ARE SHARED BASED ON CONSISTENCY.
+                  </p>
+                </div>
+
+                {/* Login buttons */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start pt-4">
+                  {/* Google Sign In Button */}
+                  <div className="w-full max-w-xs">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => console.error('Login Failed')}
+                      width="280"
+                      text="signin_with"
+                      shape="rectangular"
+                      size="large"
+                      logo_alignment="left"
+                    />
+                  </div>
+
+                  <span className="text-amber-100/70 text-sm font-bold uppercase tracking-wider">OR</span>
+
+                  <button className="btn-wallet whitespace-nowrap px-8 py-3">
+                    <span className="font-bold">Wallet</span>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-full max-w-sm">
-              <GoogleLoginButton />
+        {/* Features Section */}
+        <section className="py-24 px-6" style={{ background: 'linear-gradient(180deg, #B6771D 0%, #A06B1A 100%)' }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8">
+              <FeatureCard
+                title="How It Works ?"
+                description="Lorem Ipsum Is Simply Dummy Text Of The Printing And Typesetting Industry. Lorem Ipsum Has Been The Industry's Standard Dummy Text Ever, When An Unknown Printer Took A Galley Of Type And Scrambled It To Make A Type Specimen Book. It Has Survived Not Only Five Centuries, But Also The Leap Into Electronic Typesetting, Remaining Essentially Unchanged. It Was Popularised In The 1960s With The Release Of Letraset Sheets Recently With Desktop Publishing Software Like Aldus PageMaker Including Versions Of Lorem Ipsum."
+              />
+              <FeatureCard
+                title="AI-Assisted"
+                description="Lorem Ipsum Is Simply Dummy Text Of The Printing And Typesetting Industry. Lorem Ipsum Has Been The Industry's Standard Dummy Text Ever, When An Unknown Printer Took A Galley Of Type And Scrambled It To Make A Type Specimen Book. It Has Survived Not Only Five Centuries, But Also The Leap Into Electronic Typesetting, Remaining Essentially Unchanged. It Was Popularised In The 1960s With The Release Of Letraset Sheets Recently With Desktop Publishing Software Like Aldus PageMaker Including Versions Of Lorem Ipsum."
+              />
+              <FeatureCard
+                title="Rewards"
+                description="Lorem Ipsum Is Simply Dummy Text Of The Printing And Typesetting Industry. Lorem Ipsum Has Been The Industry's Standard Dummy Text Ever, When An Unknown Printer Took A Galley Of Type And Scrambled It To Make A Type Specimen Book. It Has Survived Not Only Five Centuries, But Also The Leap Into Electronic Typesetting, Remaining Essentially Unchanged. It Was Popularised In The 1960s With The Release Of Letraset Sheets Recently With Desktop Publishing Software Like Aldus PageMaker Including Versions Of Lorem Ipsum."
+              />
             </div>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-lg px-8 py-6"
-              onClick={() => {
-                // Scroll to how it works section
-                document.getElementById("how-it-works")?.scrollIntoView({
-                  behavior: "smooth"
-                });
+          </div>
+        </section>
+
+        {/* Bottom CTA Section */}
+        <section className="py-20 px-6" style={{ background: 'linear-gradient(180deg, #A06B1A 0%, #8B5E17 100%)' }}>
+          <div className="max-w-2xl mx-auto text-center space-y-8">
+            <p
+              className="text-amber-100/95 text-sm md:text-base font-semibold tracking-wider uppercase"
+              style={{
+                textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
               }}
             >
-              Learn More
-            </Button>
-          </div>
+              READY TO LOGIN? ENTER YOUR EMAIL TO CREATE OR USE YOUR WALLET
+            </p>
 
-          {/* Trust Indicators */}
-          <div className="mt-8 text-sm text-gray-500">
-            <p>✓ No wallet required &nbsp;•&nbsp; ✓ Gasless transactions &nbsp;•&nbsp; ✓ Web2 UX</p>
-          </div>
-        </div>
-      </div>
-
-      {/* How It Works Section */}
-      <div id="how-it-works" className="bg-white py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-          <div className="max-w-4xl mx-auto grid md:grid-cols-5 gap-4">
-            {[
-              { step: "1", title: "Login", desc: "Sign in with Google" },
-              { step: "2", title: "Create Room", desc: "Set your saving goal" },
-              { step: "3", title: "AI Strategy", desc: "Get recommendations" },
-              { step: "4", title: "Save Weekly", desc: "Deposit consistently" },
-              { step: "5", title: "Claim Rewards", desc: "Get your earnings" },
-            ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-3">
-                  {item.step}
-                </div>
-                <h3 className="font-semibold mb-1">{item.title}</h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
+              {/* Google Sign In Button */}
+              <div className="w-full max-w-xs">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => console.error('Login Failed')}
+                  width="280"
+                  text="signin_with"
+                  shape="rectangular"
+                  size="large"
+                  logo_alignment="left"
+                />
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-400">
-            Built with Sui Blockchain • Powered by zkLogin • Secured by Smart Contracts
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            ⚠️ This is a demo application. Always do your own research.
-          </p>
-        </div>
-      </footer>
-    </main>
+              <span className="text-amber-100/70 text-sm font-bold uppercase tracking-wider">OR</span>
+
+              <button className="btn-wallet whitespace-nowrap px-8 py-3">
+                <span className="font-bold">Wallet</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Curved decoration */}
+        <div
+          className="h-32 relative"
+          style={{
+            background: 'linear-gradient(180deg, #8B5E17 0%, #7B542F 100%)',
+            clipPath: 'ellipse(70% 100% at 50% 100%)',
+          }}
+        />
+
+        {/* Footer */}
+        <Footer />
+      </main>
+    </GoogleOAuthProvider>
   );
 }
+
