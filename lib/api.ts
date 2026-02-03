@@ -121,11 +121,10 @@ export const roomAPI = {
     return response.data;
   },
 
-  // Claim rewards
+  // Claim rewards (with user signature)
   claimReward: async (data: {
-    roomId: string;
-    vaultId: string;
-    playerPositionId: string;
+    txBytes: string;
+    userSignature: string;
   }) => {
     const response = await api.post('/room/claim', data);
     return response.data;
@@ -221,6 +220,31 @@ export const convertCreateRoomData = (formData: {
   // Start immediately (or 5 seconds buffer for transaction processing)
   const startTimeMs = Date.now() - 5000; // Start 5 seconds ago to ensure room is immediately joinable
   const periodLengthMs = 7 * 24 * 60 * 60 * 1000; // 1 week in milliseconds
+
+  // USDC has 6 decimals, so multiply by 1_000_000
+  const USDC_DECIMALS = 1_000_000;
+
+  return {
+    totalPeriods: formData.duration,
+    depositAmount: formData.weeklyTarget * USDC_DECIMALS, // Convert to USDC smallest unit
+    strategyId: formData.strategyId,
+    startTimeMs,
+    periodLengthMs,
+  };
+};
+
+// Helper to convert UI form data to BE format with TEST MODE (short periods)
+export const convertCreateRoomDataTestMode = (formData: {
+  name: string;
+  duration: number;
+  weeklyTarget: number;
+  strategyId: number;
+}) => {
+  // Start immediately (or 5 seconds buffer for transaction processing)
+  const startTimeMs = Date.now() - 5000; // Start 5 seconds ago to ensure room is immediately joinable
+
+  // TEST MODE: 1 minute per period instead of 1 week
+  const periodLengthMs = 60 * 1000; // 1 minute = 60000ms
 
   // USDC has 6 decimals, so multiply by 1_000_000
   const USDC_DECIMALS = 1_000_000;

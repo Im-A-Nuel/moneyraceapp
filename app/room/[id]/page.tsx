@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { roomAPI, usdcAPI, executeSponsoredTransaction, getSponsorAddress } from "@/lib/api";
+import { roomAPI, usdcAPI, playerAPI, executeSponsoredTransaction, getSponsorAddress } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { getAvailableCoin } from "@/lib/sui-utils";
 import { DEFAULT_COIN_TYPE, MIN_BALANCE_USDC, SUI_CLOCK_ID } from "@/lib/constants";
-import { buildJoinRoomTx, buildDepositTx } from "@/lib/tx-builder";
+import { buildJoinRoomTx, buildDepositTx, buildClaimTx } from "@/lib/tx-builder";
 import { buildSponsoredTx } from "@/lib/zklogin-tx";
 
 // Helper function to format time ago
@@ -26,6 +26,21 @@ function getTimeAgo(date: Date): string {
   if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
   if (diffMins > 0) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
   return 'Just now';
+}
+
+// Helper function to format countdown time
+function formatCountdown(seconds: number): string {
+  if (seconds <= 0) return 'Now!';
+
+  const days = Math.floor(seconds / (24 * 60 * 60));
+  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+  const mins = Math.floor((seconds % (60 * 60)) / 60);
+  const secs = seconds % 60;
+
+  if (days > 0) return `${days}d ${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
+  if (mins > 0) return `${mins}m ${secs}s`;
+  return `${secs}s`;
 }
 
 interface Participant {
@@ -47,11 +62,18 @@ export default function RoomDetail() {
   const [roomData, setRoomData] = useState<any>(null);
   const [playerPositionId, setPlayerPositionId] = useState<string | null>(null);
   const [isJoined, setIsJoined] = useState(false);
+  const [hasClaimed, setHasClaimed] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string>("0.00");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [roomPassword, setRoomPassword] = useState("");
+  const [periodInfo, setPeriodInfo] = useState<{
+    currentPeriod: number;
+    timeUntilNextPeriod: number; // in seconds
+    periodLengthMs: number;
+    isTestMode: boolean;
+  } | null>(null);
 
   // Fetch room data on mount and check if user already joined
   useEffect(() => {
@@ -67,13 +89,38 @@ export default function RoomDetail() {
       if (storedPositionId) {
         setPlayerPositionId(storedPositionId);
         setIsJoined(true);
+        // Fetch player position to check claimed status
+        fetchPlayerPosition(storedPositionId);
       } else {
         // Reset if no stored position for this address
         setPlayerPositionId(null);
         setIsJoined(false);
+        setHasClaimed(false);
       }
     }
   }, [roomId, user]);
+
+  // Countdown timer for next period
+  useEffect(() => {
+    if (!periodInfo) return;
+
+    const timer = setInterval(() => {
+      setPeriodInfo(prev => {
+        if (!prev) return null;
+        if (prev.timeUntilNextPeriod <= 0) {
+          // Period changed, refresh room data
+          fetchRoomData();
+          return prev;
+        }
+        return {
+          ...prev,
+          timeUntilNextPeriod: prev.timeUntilNextPeriod - 1,
+        };
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [periodInfo?.currentPeriod]);
 
   // Also check from participants list after fetching
   useEffect(() => {
@@ -133,6 +180,19 @@ export default function RoomDetail() {
     }
   };
 
+  const fetchPlayerPosition = async (positionId: string) => {
+    try {
+      const response = await playerAPI.getPosition(positionId);
+      if (response.success && response.position?.fields) {
+        const claimed = response.position.fields.claimed === true;
+        setHasClaimed(claimed);
+        console.log('Player position fetched:', { positionId, claimed });
+      }
+    } catch (error) {
+      console.error('Failed to fetch player position:', error);
+    }
+  };
+
   const fetchRoomData = async () => {
     try {
       // Validasi Room ID sebelum fetch
@@ -169,7 +229,27 @@ export default function RoomDetail() {
         // USDC has 6 decimals
         const USDC_DECIMALS = 1_000_000;
         const rawDepositAmount = parseInt(blockchainData.deposit_amount) || 10;
-        
+
+        // Get period timing info
+        const startTimeMs = parseInt(blockchainData.start_time_ms) || Date.now();
+        const periodLengthMs = parseInt(blockchainData.period_length_ms) || (7 * 24 * 60 * 60 * 1000);
+        const now = Date.now();
+        const elapsedMs = now - startTimeMs;
+        const currentPeriod = Math.max(0, Math.floor(elapsedMs / periodLengthMs));
+        const nextPeriodStart = startTimeMs + ((currentPeriod + 1) * periodLengthMs);
+        const timeUntilNextPeriod = Math.max(0, Math.floor((nextPeriodStart - now) / 1000));
+
+        // Detect test mode (period length < 1 hour)
+        const isTestMode = periodLengthMs < (60 * 60 * 1000);
+
+        // Set period info for countdown
+        setPeriodInfo({
+          currentPeriod,
+          timeUntilNextPeriod,
+          periodLengthMs,
+          isTestMode,
+        });
+
         // Transform blockchain data to frontend format
         const transformedRoom = {
           id: roomId,
@@ -179,7 +259,7 @@ export default function RoomDetail() {
           deposit_amount: rawDepositAmount, // ✓ Store raw deposit amount for transactions
           duration: parseInt(blockchainData.total_periods) || 12,
           weeklyTarget: rawDepositAmount / USDC_DECIMALS, // Convert to USDC display value
-          currentPeriod: 0, // TODO: Calculate from start_time
+          currentPeriod: currentPeriod, // Calculated from start_time
           totalPeriods: parseInt(blockchainData.total_periods) || 12,
           totalDeposit: 0, // TODO: Get from blockchain
           rewardPool: 0, // TODO: Get from blockchain
@@ -409,29 +489,80 @@ export default function RoomDetail() {
       return;
     }
 
+    // Check if user is logged in
+    if (!user?.address) {
+      setError("Please login first");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      // Get vaultId from fetched room data
-      // Get playerPositionId from stored state after join
-      const claimData = {
-        roomId: roomId,
-        vaultId: roomData.vaultId, // ✓ Real vaultId from database
-        playerPositionId: playerPositionId, // ✓ Real playerPositionId from join room
-      };
+      // 1. Get sponsor address
+      const sponsorData = await getSponsorAddress();
+      const sponsorAddress = sponsorData.sponsorAddress;
 
-      const response = await roomAPI.claimReward(claimData);
+      // 2. Build claim transaction
+      const claimTx = buildClaimTx({
+        roomId: roomId,
+        vaultId: roomData.vaultId,
+        playerPositionId: playerPositionId,
+      });
+
+      // 3. Build sponsored transaction with user as sender
+      const { txBytes, userSignature } = await buildSponsoredTx(
+        claimTx,
+        user.address,
+        sponsorAddress
+      );
+
+      // 4. Send to backend for sponsor co-signature and execution
+      const response = await roomAPI.claimReward({
+        txBytes,
+        userSignature,
+      });
 
       if (response.success) {
+        setHasClaimed(true); // Update UI to show claimed status
         alert("Rewards claimed successfully!");
         fetchRoomData(); // Refresh room data
+        // Refresh player position to confirm claimed status
+        if (playerPositionId) {
+          fetchPlayerPosition(playerPositionId);
+        }
       } else {
         setError(response.error || "Failed to claim rewards");
       }
     } catch (err: any) {
       console.error("Claim error:", err);
       setError(err.response?.data?.error || err.message || "Failed to claim rewards");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinalizeRoom = async () => {
+    if (!roomId) {
+      setError("Room ID not found.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await roomAPI.finalizeRoom(roomId);
+
+      if (response.success) {
+        alert("Room finalized successfully! You can now claim your rewards.");
+        fetchRoomData(); // Refresh room data to update status
+      } else {
+        setError(response.error || "Failed to finalize room");
+      }
+    } catch (err: any) {
+      console.error("Finalize error:", err);
+      setError(err.response?.data?.error || err.message || "Failed to finalize room");
     } finally {
       setLoading(false);
     }
@@ -499,17 +630,37 @@ export default function RoomDetail() {
             </div>
             <span
               className={`text-xs px-3 py-1 rounded ${
-                room.status === "active"
+                room.currentPeriod >= room.totalPeriods
+                  ? "bg-purple-100 text-purple-800"
+                  : room.status === "active"
                   ? "bg-green-100 text-green-800"
                   : room.status === "pending"
                   ? "bg-yellow-100 text-yellow-800"
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              {room.status === "active" ? "Active" : room.status === "pending" ? "Pending" : "Finished"}
+              {room.currentPeriod >= room.totalPeriods
+                ? "✓ Completed"
+                : room.status === "active"
+                ? "Active"
+                : room.status === "pending"
+                ? "Pending"
+                : "Finished"}
             </span>
           </div>
         </div>
+
+        {/* Test Mode Banner */}
+        {periodInfo?.isTestMode && (
+          <div className="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-orange-600 font-bold">🧪 TEST MODE</span>
+              <span className="text-sm text-orange-700">
+                Each period is 1 minute (instead of 1 week)
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-4 gap-4 mb-6">
@@ -519,14 +670,33 @@ export default function RoomDetail() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Week {room.currentPeriod}/{room.totalPeriods}
+                {room.currentPeriod >= room.totalPeriods ? (
+                  <span className="text-green-600">✓ Completed</span>
+                ) : (
+                  <>{periodInfo?.isTestMode ? 'Period' : 'Week'} {room.currentPeriod}/{room.totalPeriods}</>
+                )}
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                 <div
-                  className="bg-blue-600 h-2 rounded-full"
-                  style={{ width: `${(room.currentPeriod / room.totalPeriods) * 100}%` }}
+                  className={`h-2 rounded-full ${room.currentPeriod >= room.totalPeriods ? 'bg-green-600' : 'bg-blue-600'}`}
+                  style={{ width: `${Math.min(100, (room.currentPeriod / room.totalPeriods) * 100)}%` }}
                 />
               </div>
+              {/* Countdown to next period - only show if not completed */}
+              {periodInfo && room.currentPeriod < room.totalPeriods && (
+                <div className="mt-2 text-xs text-gray-600">
+                  Next {periodInfo.isTestMode ? 'period' : 'week'} in:{' '}
+                  <span className={`font-bold ${periodInfo.timeUntilNextPeriod <= 10 ? 'text-green-600' : ''}`}>
+                    {formatCountdown(periodInfo.timeUntilNextPeriod)}
+                  </span>
+                </div>
+              )}
+              {/* Completed message */}
+              {room.currentPeriod >= room.totalPeriods && (
+                <div className="mt-2 text-xs text-green-600 font-medium">
+                  All {room.totalPeriods} periods completed!
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -614,12 +784,62 @@ export default function RoomDetail() {
               </Card>
             )}
 
-            {/* Deposit Card - Show only if joined */}
-            {room.status === "active" && isJoined && (
+            {/* Room Completed Card - Show when all periods are done but room not finalized */}
+            {room.status === "active" && isJoined && room.currentPeriod >= room.totalPeriods && (
+              <Card className="border-green-300 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="text-green-800">🎉 Room Completed!</CardTitle>
+                  <CardDescription>All {room.totalPeriods} periods have been completed</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {hasClaimed ? (
+                    <div className="bg-green-100 border border-green-300 rounded p-4 text-center">
+                      <p className="text-green-800 font-semibold">✅ Rewards Claimed!</p>
+                      <p className="text-sm text-green-600 mt-1">
+                        You have successfully claimed your principal and rewards.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-white border border-green-200 rounded p-3">
+                        <p className="text-sm text-green-800 mb-2">
+                          <strong>Congratulations!</strong> You have completed this saving room.
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          The room admin needs to finalize the room before rewards can be claimed.
+                          Please wait for the finalization process.
+                        </p>
+                      </div>
+
+                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                        <p className="text-xs text-yellow-800">
+                          ⏳ <strong>Waiting for finalization...</strong><br />
+                          Once finalized, you'll be able to claim your deposits + rewards.
+                        </p>
+                      </div>
+
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={handleClaimReward}
+                        disabled={loading}
+                      >
+                        {loading ? "Processing..." : "Try Claim (if finalized)"}
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Deposit Card - Show only if joined AND periods not completed */}
+            {room.status === "active" && isJoined && room.currentPeriod < room.totalPeriods && (
               <Card>
                 <CardHeader>
                   <CardTitle>Make Deposit</CardTitle>
-                  <CardDescription>Weekly target: ${room.weeklyTarget}</CardDescription>
+                  <CardDescription>
+                    {periodInfo?.isTestMode ? 'Period' : 'Weekly'} target: ${room.weeklyTarget}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="bg-green-50 border border-green-200 rounded p-2 mb-2">
@@ -627,6 +847,27 @@ export default function RoomDetail() {
                       ✓ You have joined this room
                     </p>
                   </div>
+
+                  {/* Period Info */}
+                  {periodInfo && (
+                    <div className={`border rounded p-3 ${periodInfo.isTestMode ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
+                      <div className="text-sm font-medium mb-1">
+                        Current {periodInfo.isTestMode ? 'Period' : 'Week'}: {periodInfo.currentPeriod}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        Next {periodInfo.isTestMode ? 'period' : 'week'} in:{' '}
+                        <span className={`font-bold ${periodInfo.timeUntilNextPeriod <= 10 ? 'text-green-600 animate-pulse' : ''}`}>
+                          {formatCountdown(periodInfo.timeUntilNextPeriod)}
+                        </span>
+                      </div>
+                      {periodInfo.isTestMode && (
+                        <div className="text-xs text-orange-600 mt-1">
+                          🧪 Test mode: 1 min periods
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <Input
                       type="number"
@@ -640,7 +881,7 @@ export default function RoomDetail() {
                     onClick={handleDeposit}
                     disabled={!depositAmount || loading}
                   >
-                    {loading ? "Processing..." : "Deposit"}
+                    {loading ? "Processing..." : `Deposit for ${periodInfo?.isTestMode ? 'Period' : 'Week'} ${periodInfo?.currentPeriod || 0}`}
                   </Button>
                   <p className="text-xs text-gray-500">
                     ⚠️ Gasless transaction powered by zkLogin
@@ -659,23 +900,34 @@ export default function RoomDetail() {
                   <CardDescription>Room has ended</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Your Deposit</span>
-                      <span className="font-semibold">$300</span>
+                  {hasClaimed ? (
+                    <div className="bg-green-50 border border-green-200 rounded p-4 text-center">
+                      <p className="text-green-800 font-semibold">✅ Rewards Claimed!</p>
+                      <p className="text-sm text-green-600 mt-1">
+                        You have successfully claimed your principal and rewards.
+                      </p>
                     </div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Your Reward</span>
-                      <span className="font-semibold text-green-600">$30</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold pt-2 border-t">
-                      <span>Total</span>
-                      <span className="text-blue-600">$330</span>
-                    </div>
-                  </div>
-                  <Button className="w-full" onClick={handleClaimReward} disabled={loading}>
-                    {loading ? "Processing..." : "Claim Rewards"}
-                  </Button>
+                  ) : (
+                    <>
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Your Deposit</span>
+                          <span className="font-semibold">$300</span>
+                        </div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Your Reward</span>
+                          <span className="font-semibold text-green-600">$30</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-bold pt-2 border-t">
+                          <span>Total</span>
+                          <span className="text-blue-600">$330</span>
+                        </div>
+                      </div>
+                      <Button className="w-full" onClick={handleClaimReward} disabled={loading}>
+                        {loading ? "Processing..." : "Claim Rewards"}
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}

@@ -152,7 +152,9 @@ export default function Dashboard() {
           </h1>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="text-sm text-gray-600">{user?.email || 'Guest'}</div>
+              <div className="text-sm text-gray-600">
+                {user?.email ? user.email : 'Connected Wallet'}
+              </div>
               <div className="text-xs font-mono text-blue-600">
                 {user?.address ? formatAddress(user.address) : 'No wallet'}
               </div>

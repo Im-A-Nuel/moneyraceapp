@@ -85,12 +85,12 @@ export function buildDepositTx(params: {
 
 /**
  * Build claim transaction
+ * Matches: claim_all(room, vault, player, ctx)
  */
 export function buildClaimTx(params: {
   roomId: string;
   vaultId: string;
   playerPositionId: string;
-  clockId: string;
 }): Transaction {
   const tx = new Transaction();
 
@@ -100,7 +100,6 @@ export function buildClaimTx(params: {
       tx.object(params.roomId),
       tx.object(params.vaultId),
       tx.object(params.playerPositionId),
-      tx.object(params.clockId),
     ],
   });
 
