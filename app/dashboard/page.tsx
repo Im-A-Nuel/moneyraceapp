@@ -20,13 +20,30 @@ interface Room {
   totalDeposit: number;
   strategy: string;
   status: "active" | "ended";
+  isPrivate?: boolean;
+}
+
+interface MyRoom {
+  roomId: string;
+  vaultId: string | null;
+  playerPositionId: string;
+  joinedAt: number;
+  myDeposit: number;
+  depositsCount: number;
+  totalPeriods: number;
+  depositAmount: number;
+  strategyId: number;
+  isPrivate: boolean;
+  status: number;
 }
 
 export default function Dashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [myRooms, setMyRooms] = useState<MyRoom[]>([]);
   const [loading, setLoading] = useState(true);
+  const [myRoomsLoading, setMyRoomsLoading] = useState(true);
   const [usdcBalance, setUsdcBalance] = useState<string>("0.00");
   const [balanceLoading, setBalanceLoading] = useState(false);
 
@@ -45,6 +62,7 @@ export default function Dashboard() {
     fetchRooms();
     if (user?.address) {
       fetchUSDCBalance();
+      fetchMyRooms();
     }
   }, [user]);
 
@@ -59,6 +77,24 @@ export default function Dashboard() {
       setUsdcBalance("0.00");
     } finally {
       setBalanceLoading(false);
+    }
+  };
+
+  const fetchMyRooms = async () => {
+    if (!user?.address) return;
+    try {
+      setMyRoomsLoading(true);
+      const response = await roomAPI.getMyRooms(user.address);
+      if (response.success && response.rooms) {
+        setMyRooms(response.rooms);
+      } else {
+        setMyRooms([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch my rooms:', error);
+      setMyRooms([]);
+    } finally {
+      setMyRoomsLoading(false);
     }
   };
 
@@ -181,6 +217,14 @@ export default function Dashboard() {
           <Button
             size="lg"
             variant="outline"
+            onClick={() => router.push("/join-private")}
+            className="w-full md:w-auto"
+          >
+            🔒 Join Private Room
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
             onClick={() => router.push("/mint")}
             className="w-full md:w-auto"
           >
@@ -193,6 +237,9 @@ export default function Dashboard() {
           <TabsList>
             <TabsTrigger value="active">
               Active Rooms ({activeRooms.length})
+            </TabsTrigger>
+            <TabsTrigger value="my-rooms">
+              My Rooms ({myRooms.length})
             </TabsTrigger>
             <TabsTrigger value="ended">
               Ended Rooms ({endedRooms.length})
@@ -258,6 +305,81 @@ export default function Dashboard() {
                           <span className="text-gray-600">Total Pool: </span>
                           <span className="font-semibold">${room.totalDeposit}</span>
                         </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="my-rooms" className="space-y-4 mt-4">
+            {myRoomsLoading ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : myRooms.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <p className="text-gray-600 mb-4">
+                    You haven't joined any rooms yet.
+                  </p>
+                  <Button onClick={() => router.push("/create-room")}>
+                    Join or Create a Room
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              myRooms.map((room) => (
+                <Card
+                  key={room.roomId}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => router.push(`/room/${room.roomId}`)}
+                >
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          Room #{room.roomId.slice(0, 8)}...
+                          {room.isPrivate && (
+                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                              🔒 Private
+                            </span>
+                          )}
+                        </CardTitle>
+                        <CardDescription>
+                          {room.depositsCount} deposits made • Strategy {room.strategyId}
+                        </CardDescription>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        room.status === 0 
+                          ? 'bg-green-100 text-green-800' 
+                          : room.status === 1 
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {room.status === 0 ? 'Active' : room.status === 1 ? 'Claiming' : 'Ended'}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Your Total Deposit</span>
+                        <span className="font-semibold text-green-600">
+                          ${(room.myDeposit / 1_000_000).toFixed(2)} USDC
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Weekly Target</span>
+                        <span className="font-medium">
+                          ${(room.depositAmount / 1_000_000).toFixed(2)} USDC
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Duration</span>
+                        <span className="font-medium">{room.totalPeriods} weeks</span>
+                      </div>
+                      <div className="text-xs text-gray-500 pt-2">
+                        Joined: {new Date(room.joinedAt).toLocaleDateString()}
                       </div>
                     </div>
                   </CardContent>

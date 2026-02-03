@@ -4,6 +4,8 @@
  */
 
 import { Transaction } from '@mysten/sui/transactions';
+import { bcs } from '@mysten/sui/bcs';
+import { keccak_256 } from '@noble/hashes/sha3.js';
 
 // Contract Package ID
 const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID || '';
@@ -19,13 +21,23 @@ export function buildJoinRoomTx(params: {
   coinObjectId: string;
   clockId: string;
   depositAmount: number; // Amount to deposit (from room config)
+  password?: string; // Password for private rooms (will be hashed with keccak256)
 }): Transaction {
   const tx = new Transaction();
 
   // Split exact amount from user's coin
   const [depositCoin] = tx.splitCoins(tx.object(params.coinObjectId), [params.depositAmount]);
 
-  // Use join_room with the split coin
+  // Hash password if provided, otherwise use empty vector
+  let passwordBytes: Uint8Array;
+  if (params.password) {
+    const hash = keccak_256(new TextEncoder().encode(params.password));
+    passwordBytes = hash; // keccak_256 already returns Uint8Array
+  } else {
+    passwordBytes = new Uint8Array(0); // Empty Uint8Array for public rooms
+  }
+
+  // Use join_room with the split coin and password
   tx.moveCall({
     target: `${PACKAGE_ID}::money_race::join_room`,
     arguments: [
@@ -33,6 +45,7 @@ export function buildJoinRoomTx(params: {
       tx.object(params.vaultId),
       tx.object(params.clockId),
       depositCoin,
+      tx.pure(bcs.vector(bcs.u8()).serialize(passwordBytes)),
     ],
   });
 

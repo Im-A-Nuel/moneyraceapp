@@ -85,9 +85,10 @@ export const roomAPI = {
     strategyId: number;
     startTimeMs: number;
     periodLengthMs: number;
+    isPrivate?: boolean;
   }) => {
     const response = await api.post('/room/create', data);
-    return response.data;
+    return response.data; // May include 'password' field for private rooms
   },
 
   // Start a room (Admin only)
@@ -145,6 +146,12 @@ export const roomAPI = {
   // Get room transaction history
   getHistory: async (roomId: string) => {
     const response = await api.get(`/room/${roomId}/history`);
+    return response.data;
+  },
+
+  // Get rooms joined by a user
+  getMyRooms: async (userAddress: string) => {
+    const response = await api.get(`/room/user/${userAddress}/joined`);
     return response.data;
   },
 

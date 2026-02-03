@@ -50,6 +50,8 @@ export default function RoomDetail() {
   const [usdcBalance, setUsdcBalance] = useState<string>("0.00");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [roomPassword, setRoomPassword] = useState("");
 
   // Fetch room data on mount and check if user already joined
   useEffect(() => {
@@ -184,6 +186,7 @@ export default function RoomDetail() {
           strategy: blockchainData.strategy_id === 0 ? "Stable" : blockchainData.strategy_id === 1 ? "Growth" : "Aggressive",
           status: roomStatus,
           participants: [], // TODO: Query from blockchain
+          isPrivate: blockchainData.is_private || false,
         };
 
         setRoomData(transformedRoom);
@@ -211,6 +214,7 @@ export default function RoomDetail() {
     rewardPool: 150,
     strategy: "Stable",
     status: "active" as const,
+    isPrivate: false,
     participants: [
       { address: "0x123...abc", totalDeposit: 300, depositsCount: 3, consistencyScore: 100 },
       { address: "0x456...def", totalDeposit: 300, depositsCount: 3, consistencyScore: 100 },
@@ -259,6 +263,7 @@ export default function RoomDetail() {
         coinObjectId: coinObjectId,
         clockId: SUI_CLOCK_ID,
         depositAmount: depositAmount,
+        password: roomPassword || undefined, // Pass password if room is private
       });
 
       // Sign with ephemeral keypair and get txBytes + signature
@@ -480,7 +485,14 @@ export default function RoomDetail() {
         <div className="mb-6">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <h2 className="text-3xl font-bold mb-2">{room.name}</h2>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-3xl font-bold">{room.name}</h2>
+                {room.isPrivate && (
+                  <span className="text-sm px-2 py-1 rounded bg-purple-100 text-purple-800">
+                    🔒 Private
+                  </span>
+                )}
+              </div>
               <p className="text-gray-600">
                 {room.strategy} Strategy • Created by {room.creator}
               </p>
@@ -561,7 +573,7 @@ export default function RoomDetail() {
                 <CardHeader>
                   <CardTitle>Join This Room</CardTitle>
                   <CardDescription>
-                    Join to start saving and compete with others
+                    {room.isPrivate ? "🔒 Private Room - Password Required" : "Join to start saving and compete with others"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -570,10 +582,25 @@ export default function RoomDetail() {
                       💡 By joining, you'll get a player position and can start making deposits.
                     </p>
                   </div>
+
+                  {/* Password input for private rooms */}
+                  {room.isPrivate && (
+                    <div>
+                      <label className="text-sm font-medium">Room Password</label>
+                      <Input
+                        type="password"
+                        placeholder="Enter room password"
+                        value={roomPassword}
+                        onChange={(e) => setRoomPassword(e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
+                  )}
+
                   <Button
                     className="w-full"
                     onClick={handleJoinRoom}
-                    disabled={loading}
+                    disabled={loading || (room.isPrivate && !roomPassword)}
                   >
                     {loading ? "Joining..." : "Join Room"}
                   </Button>
