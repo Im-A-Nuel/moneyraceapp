@@ -8,19 +8,84 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "@/store/auth.store";
 import { authAPI } from "@/lib/api";
 import { getOrCreateKeypairForUser } from "@/lib/keypair";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useCurrentAccount, useConnectWallet } from "@mysten/dapp-kit";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, logout, isAuthenticated } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const currentAccount = useCurrentAccount();
+  const { mutate: connect } = useConnectWallet();
 
-  // If already authenticated, redirect to dashboard
-  if (isAuthenticated) {
-    router.push("/dashboard");
-    return null;
-  }
+  // If already authenticated with correct login method, redirect to dashboard
+  // Don't redirect if wallet is connecting (allow switch from Google to Wallet)
+  useEffect(() => {
+    if (isAuthenticated && !currentAccount) {
+      // Only redirect if authenticated and no wallet is connecting
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, currentAccount, router]);
+
+  // Auto-login when wallet is connected
+  useEffect(() => {
+    if (currentAccount?.address) {
+      console.log('Wallet connected, auto-login triggered for:', currentAccount.address);
+
+      // Logout first to clear any previous session
+      logout();
+
+      // Create user object from wallet address
+      const user = {
+        id: currentAccount.address,
+        email: `${currentAccount.address.slice(0, 6)}...@wallet`,
+        name: `Wallet ${currentAccount.address.slice(0, 6)}...${currentAccount.address.slice(-4)}`,
+        address: currentAccount.address,
+        loginMethod: 'wallet' as const,
+      };
+
+      // Login without token
+      login(user, '');
+
+      console.log('Wallet login successful:', currentAccount.address);
+      console.log('User with loginMethod:', user.loginMethod);
+
+      // Redirect to dashboard
+      router.push('/dashboard');
+    }
+  }, [currentAccount, login, logout, router]);
+
+  const handleWalletLogin = async (address: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Logout first to clear any previous session (Google login)
+      logout();
+
+      // Create user object from wallet address
+      const user = {
+        id: address,
+        email: `${address.slice(0, 6)}...@wallet`,
+        name: `Wallet ${address.slice(0, 6)}...${address.slice(-4)}`,
+        address: address,
+        loginMethod: 'wallet' as const,
+      };
+
+      // Login without token (wallet doesn't need backend token)
+      login(user, '');
+
+      console.log('Wallet login successful:', address);
+      console.log('User with loginMethod:', user.loginMethod);
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Wallet login error:', err);
+      setError(err.message || 'Wallet login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
@@ -50,6 +115,7 @@ export default function LoginPage() {
             name: payload.name || payload.email,
             address: suiAddress,
             avatar: payload.picture,
+            loginMethod: 'google',
           },
           idToken
         );
@@ -128,10 +194,14 @@ export default function LoginPage() {
 
                   {/* Wallet button */}
                   <button
-                    disabled={isLoading}
+                    onClick={() => connect({}, {
+                      onSuccess: () => console.log('Wallet connected successfully'),
+                      onError: (err) => setError('Failed to connect wallet: ' + err.message)
+                    })}
+                    disabled={isLoading || !!currentAccount}
                     className="btn-wallet w-full justify-center disabled:opacity-50"
                   >
-                    <span>Use Wallet</span>
+                    <span>{currentAccount ? 'Wallet Connected' : 'Use Wallet'}</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>

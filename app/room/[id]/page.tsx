@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -10,6 +10,8 @@ import { getCoinsForAmount } from "@/lib/sui-utils";
 import { DEFAULT_COIN_TYPE, MIN_BALANCE_USDC, SUI_CLOCK_ID } from "@/lib/constants";
 import { buildJoinRoomTx, buildDepositTx, buildClaimTx } from "@/lib/tx-builder";
 import { buildSponsoredTx } from "@/lib/zklogin-tx";
+import { loadKeypair } from "@/lib/keypair";
+import { useSignAndExecuteTransaction, useCurrentAccount } from "@mysten/dapp-kit";
 import { LottieLoading, LottieSpinner } from "@/components/ui/LottieLoading";
 import { useToast } from "@/components/ui/Toast";
 import { HiUserGroup, HiClock, HiLockClosed, HiCheckCircle, HiExclamationCircle, HiCurrencyDollar, HiArrowRight, HiArrowLeft, HiTrendingUp, HiCalendar, HiRefresh, HiKey, HiSparkles, HiLightBulb, HiShare, HiClipboardCopy, HiDocumentText } from "react-icons/hi";
@@ -47,6 +49,64 @@ function formatCountdown(seconds: number): string {
   return `${secs}s`;
 }
 
+// Helper function to get APY based on strategy
+function getApyFromStrategy(strategy: string): number {
+  switch (strategy) {
+    case 'Aggressive': return 0.15;
+    case 'Growth': return 0.08;
+    case 'Stable':
+    default: return 0.04;
+  }
+}
+
+// Live Yield Display Component
+function LiveYieldDisplay({ totalPool, strategy, startTime, realizedYield }: {
+  totalPool: number;
+  strategy: string;
+  startTime: Date;
+  realizedYield: number;
+}) {
+  const [yieldAmount, setYieldAmount] = useState(realizedYield);
+
+  useEffect(() => {
+    if (totalPool <= 0 && realizedYield <= 0) {
+      setYieldAmount(0);
+      return;
+    }
+
+    const apy = getApyFromStrategy(strategy);
+    // Calculate per-second yield: TotalPool * APY / (365 * 24 * 60 * 60)
+    const yieldPerSecond = (totalPool * apy) / 31536000;
+
+    // Initial accrued calculation (Simulation)
+    const now = Date.now();
+    const start = startTime.getTime();
+    const elapsedSeconds = (now - start) / 1000;
+    const initialSimulated = yieldPerSecond * elapsedSeconds;
+
+    // Hybrid Launch: Start at MAX(Realized, Simulated)
+    // Use simulated value only if it's plausible (non-negative)
+    let currentVal = Math.max(realizedYield, initialSimulated > 0 ? initialSimulated : 0);
+    setYieldAmount(currentVal);
+
+    // Increment by yieldPerSecond / 10 every 100ms
+    const interval = setInterval(() => {
+      // Just add expected increment
+      // Ideally we should track "simulated" separately and compare Max every tick,
+      // but purely additive ticking is smoother and safer given "Realized" is static floor.
+      setYieldAmount(prev => prev + (yieldPerSecond / 10));
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [totalPool, strategy, realizedYield]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <span className="font-mono tabular-nums">
+      ${yieldAmount.toFixed(6)}
+    </span>
+  );
+}
+
 interface Participant {
   address: string;
   totalDeposit: number;
@@ -58,8 +118,22 @@ export default function RoomDetail() {
   const router = useRouter();
   const params = useParams();
   const roomId = params?.id as string;
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const toast = useToast();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const currentWalletAccount = useCurrentAccount();
+
+  // Auto-fix loginMethod if wallet is connected but loginMethod is missing
+  useEffect(() => {
+    if (currentWalletAccount?.address && user?.address === currentWalletAccount.address && !user.loginMethod) {
+      console.log('⚠️ Wallet detected but loginMethod missing! Auto-fixing user object...');
+      setUser({
+        ...user,
+        loginMethod: 'wallet',
+      });
+      console.log('✅ LoginMethod updated to: wallet');
+    }
+  }, [currentWalletAccount, user, setUser]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -80,6 +154,7 @@ export default function RoomDetail() {
   } | null>(null);
   const [hasDepositedThisPeriod, setHasDepositedThisPeriod] = useState(false);
   const [showFinalizeButton, setShowFinalizeButton] = useState(false);
+  const [activeTab, setActiveTab] = useState<'participants' | 'details' | 'history'>('participants');
 
   // Fetch room data on mount and check if user already joined
   useEffect(() => {
@@ -364,8 +439,8 @@ export default function RoomDetail() {
           weeklyTarget: rawDepositAmount / USDC_DECIMALS, // Convert to USDC display value
           currentPeriod: currentPeriod, // Calculated from start_time
           totalPeriods: parseInt(blockchainData.total_periods) || 12,
-          totalDeposit: 0, // TODO: Get from blockchain
-          rewardPool: 0, // TODO: Get from blockchain
+          totalDeposit: response.room.totalDeposit || 0, // ✓ Get from vault balance (backend)
+          rewardPool: response.room.rewardPool || 0, // ✓ Get from vault balance (backend)
           strategy: blockchainData.strategy_id === 0 ? "Stable" : blockchainData.strategy_id === 1 ? "Growth" : "Aggressive",
           status: roomStatus,
           participants: [], // TODO: Query from blockchain
@@ -463,14 +538,98 @@ export default function RoomDetail() {
         password: roomPassword || undefined, // Pass password if room is private
       });
 
-      // Sign with ephemeral keypair and get txBytes + signature
-      console.log("Building and signing transaction...");
-      const { txBytes, userSignature } = await buildSponsoredTx(tx, user.address);
-      console.log("Transaction signed by user");
+      // Auto-detect loginMethod if undefined
+      let detectedLoginMethod = user.loginMethod;
+      if (!detectedLoginMethod) {
+        // Check if ephemeral keypair exists (Google login) or wallet connected
+        const hasKeypair = loadKeypair() !== null;
+        const hasWallet = currentWalletAccount?.address === user.address;
 
-      // Send to backend for sponsor signature and execution
-      console.log("Sending to backend for execution...");
-      const response = await executeSponsoredTransaction(txBytes, userSignature);
+        if (hasWallet) {
+          detectedLoginMethod = 'wallet';
+          console.log('🔧 Auto-detected loginMethod: wallet (wallet connected)');
+        } else if (hasKeypair) {
+          detectedLoginMethod = 'google';
+          console.log('🔧 Auto-detected loginMethod: google (ephemeral keypair found)');
+        } else {
+          detectedLoginMethod = 'google'; // Default fallback
+          console.log('⚠️ Could not detect loginMethod, defaulting to google');
+        }
+
+        // Update user object in store
+        setUser({
+          ...user,
+          loginMethod: detectedLoginMethod,
+        });
+      }
+
+      console.log("Building and signing transaction...");
+      console.log("Login method:", detectedLoginMethod);
+
+      const { txBytes, userSignature, executeDirectly } = await buildSponsoredTx(
+        tx,
+        user.address,
+        detectedLoginMethod,
+        detectedLoginMethod === 'wallet' ? signAndExecuteTransaction : undefined
+      );
+
+      let response: any;
+
+      if (executeDirectly) {
+        // Wallet executed directly, txBytes contains digest
+        console.log("✅ Wallet executed directly, digest:", txBytes);
+
+        // Validate digest
+        if (!txBytes || txBytes.length === 0) {
+          throw new Error('Transaction executed but no digest returned from wallet');
+        }
+
+        // Wait for transaction to be confirmed on blockchain (2 seconds)
+        console.log("Waiting for transaction confirmation...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Fetch transaction details from blockchain to get created objects
+        const { suiClient } = await import('@/lib/sui');
+
+        try {
+          const txDetails = await suiClient.getTransactionBlock({
+            digest: txBytes,
+            options: {
+              showEffects: true,
+              showObjectChanges: true,
+            },
+          });
+
+          console.log("Transaction details fetched:", txDetails);
+
+          response = {
+            success: true,
+            digest: txBytes,
+            effects: {
+              created: txDetails.objectChanges
+                ?.filter((change: any) => change.type === 'created')
+                .map((change: any) => ({
+                  reference: { objectId: change.objectId },
+                  objectType: change.objectType,
+                })) || [],
+            },
+          };
+        } catch (fetchError: any) {
+          console.error("Failed to fetch transaction details:", fetchError);
+          // If fetch fails, still mark as success but without detailed effects
+          // User can manually refresh to see if they're in the room
+          response = {
+            success: true,
+            digest: txBytes,
+            effects: { created: [] },
+            warning: 'Transaction executed but details could not be fetched. Please refresh the page.',
+          };
+        }
+      } else {
+        // Google/zkLogin: Send to backend for sponsored execution
+        console.log("Sending to backend for execution...");
+        response = await executeSponsoredTransaction(txBytes, userSignature);
+      }
 
       if (response.success) {
         // Extract player position ID from transaction effects
@@ -498,8 +657,19 @@ export default function RoomDetail() {
           toast.success("Welcome!", "Successfully joined the room!");
           fetchRoomData(); // Refresh room data
           fetchParticipants(); // Refresh participants
+        } else if (response.warning) {
+          // Transaction succeeded but couldn't fetch details
+          setIsJoined(true);
+          toast.success("Room Joined!", "Transaction confirmed. Refreshing page to update details...");
+          setTimeout(() => {
+            window.location.reload(); // Refresh to fetch updated data
+          }, 2000);
         } else {
-          setError("Room joined but could not extract player position ID");
+          // Transaction succeeded but PlayerPosition ID not found
+          toast.success("Room Joined!", "Transaction confirmed. Please refresh the page if needed.");
+          setIsJoined(true);
+          fetchRoomData();
+          fetchParticipants();
         }
       } else {
         setError(response.error || "Failed to join room");
@@ -574,14 +744,35 @@ export default function RoomDetail() {
         depositAmount: depositAmountValue,
       });
 
-      // Sign with ephemeral keypair
-      console.log("Building and signing deposit transaction...");
-      const { txBytes, userSignature } = await buildSponsoredTx(tx, user.address);
-      console.log("Deposit transaction signed by user");
+      // Auto-detect loginMethod if undefined
+      let detectedLoginMethod = user.loginMethod;
+      if (!detectedLoginMethod) {
+        const hasKeypair = loadKeypair() !== null;
+        const hasWallet = currentWalletAccount?.address === user.address;
+        detectedLoginMethod = hasWallet ? 'wallet' : hasKeypair ? 'google' : 'google';
+        console.log('🔧 Auto-detected loginMethod:', detectedLoginMethod);
+        setUser({ ...user, loginMethod: detectedLoginMethod });
+      }
 
-      // Send to backend for sponsor signature and execution
-      console.log("Sending deposit to backend for execution...");
-      const response = await executeSponsoredTransaction(txBytes, userSignature);
+      console.log("Building and signing deposit transaction...");
+      const { txBytes, userSignature, executeDirectly } = await buildSponsoredTx(
+        tx,
+        user.address,
+        detectedLoginMethod,
+        detectedLoginMethod === 'wallet' ? signAndExecuteTransaction : undefined
+      );
+
+      let response: any;
+
+      if (executeDirectly) {
+        // Wallet executed directly
+        console.log("✅ Wallet executed deposit directly, digest:", txBytes);
+        response = { success: true, digest: txBytes };
+      } else {
+        // Google/zkLogin: Send to backend
+        console.log("Sending deposit to backend for execution...");
+        response = await executeSponsoredTransaction(txBytes, userSignature);
+      }
 
       if (response.success) {
         toast.success("Deposit Successful!", "Your deposit has been recorded.");
@@ -633,18 +824,37 @@ export default function RoomDetail() {
         playerPositionId: playerPositionId,
       });
 
+      // Auto-detect loginMethod if undefined
+      let detectedLoginMethod = user.loginMethod;
+      if (!detectedLoginMethod) {
+        const hasKeypair = loadKeypair() !== null;
+        const hasWallet = currentWalletAccount?.address === user.address;
+        detectedLoginMethod = hasWallet ? 'wallet' : hasKeypair ? 'google' : 'google';
+        console.log('🔧 Auto-detected loginMethod:', detectedLoginMethod);
+        setUser({ ...user, loginMethod: detectedLoginMethod });
+      }
+
       // 3. Build sponsored transaction with user as sender
-      const { txBytes, userSignature } = await buildSponsoredTx(
+      const { txBytes, userSignature, executeDirectly } = await buildSponsoredTx(
         claimTx,
         user.address,
-        sponsorAddress
+        detectedLoginMethod,
+        detectedLoginMethod === 'wallet' ? signAndExecuteTransaction : undefined
       );
 
-      // 4. Send to backend for sponsor co-signature and execution
-      const response = await roomAPI.claimReward({
-        txBytes,
-        userSignature,
-      });
+      let response: any;
+
+      if (executeDirectly) {
+        // Wallet executed directly
+        console.log("✅ Wallet executed claim directly, digest:", txBytes);
+        response = { success: true, digest: txBytes };
+      } else {
+        // Google/zkLogin: Send to backend
+        response = await roomAPI.claimReward({
+          txBytes,
+          userSignature,
+        });
+      }
 
       if (response.success) {
         toast.success("Congratulations! 🎉", "Rewards claimed successfully!");
@@ -826,7 +1036,15 @@ export default function RoomDetail() {
               {room.currentPeriod >= room.totalPeriods ? (
                 <span className="text-green-400 flex items-center gap-1"><HiCheckCircle className="w-5 h-5" /> Completed</span>
               ) : (
-                <>{periodInfo?.isTestMode ? 'Period' : 'Week'} {room.currentPeriod}/{room.totalPeriods}</>
+                <>
+                  {(() => {
+                    if (periodInfo?.isTestMode) return 'Period';
+                    // Check if daily (1 day = 86,400,000 ms) or weekly (7 days = 604,800,000 ms)
+                    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+                    const isDaily = periodInfo?.periodLengthMs && periodInfo.periodLengthMs <= ONE_DAY_MS * 2; // Allow some tolerance
+                    return isDaily ? 'Day' : 'Week';
+                  })()} {room.currentPeriod}/{room.totalPeriods}
+                </>
               )}
             </div>
             <div className="w-full bg-slate-700 rounded-full h-2.5 overflow-hidden">
@@ -842,7 +1060,12 @@ export default function RoomDetail() {
             </div>
             {periodInfo && room.currentPeriod < room.totalPeriods && (
               <div className="mt-3 text-xs text-slate-300">
-                Next {periodInfo.isTestMode ? 'period' : 'week'} in:{' '}
+                Next {(() => {
+                  if (periodInfo.isTestMode) return 'period';
+                  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+                  const isDaily = periodInfo.periodLengthMs <= ONE_DAY_MS * 2;
+                  return isDaily ? 'day' : 'week';
+                })()} in:{' '}
                 <span className={`font-bold ${periodInfo.timeUntilNextPeriod <= 10 ? 'text-green-400 animate-pulse' : 'text-white'}`}>
                   {formatCountdown(periodInfo.timeUntilNextPeriod)}
                 </span>
@@ -863,10 +1086,22 @@ export default function RoomDetail() {
             </div>
           </div>
 
-          {/* Reward Pool Card */}
+          {/* Live Reward Pool Card */}
           <div className="bg-gradient-to-br from-amber-600 to-amber-800 rounded-2xl p-6 border-2 border-amber-400/50 shadow-xl hover:shadow-2xl transition-all">
-            <div className="text-xs text-amber-200 font-semibold mb-2 uppercase tracking-wide flex items-center gap-1"><FaTrophy className="w-3 h-3" /> Reward Pool</div>
-            <div className="text-2xl font-bold text-white">${room.rewardPool}</div>
+            <div className="text-xs text-amber-200 font-semibold mb-2 uppercase tracking-wide flex items-center gap-1"><FaTrophy className="w-3 h-3" /> Live Reward</div>
+            <div className="text-2xl font-bold text-white">
+              {roomData?.status === 'active' && room.totalDeposit > 0 ? (
+                <LiveYieldDisplay
+                  totalPool={room.totalDeposit || 0}
+                  strategy={room.strategy}
+                  startTime={history.length > 0 ? new Date(Math.min(...history.map(h => new Date(h.timestamp).getTime()))) : new Date(Date.now() - 60000)}
+                  realizedYield={room.rewardPool || 0}
+                />
+              ) : (
+                <span>${(room.rewardPool || 0).toFixed(2)}</span>
+              )}
+            </div>
+            <div className="text-xs text-amber-200/70 mt-1">Accruing at {getApyFromStrategy(room.strategy) * 100}% APY</div>
           </div>
 
           {/* Participants Card */}
@@ -1258,21 +1493,12 @@ export default function RoomDetail() {
             {/* Custom Tab System */}
             <div className="mb-4">
               <div className="flex gap-2 bg-[#FDF8EC] p-2 rounded-xl border-2 border-[#D4A84B]">
-                {['participants', 'details', 'history'].map((tab) => (
+                {(['participants', 'details', 'history'] as const).map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => {
-                      const content = document.querySelectorAll('[data-tab-content]');
-                      content.forEach(c => c.classList.add('hidden'));
-                      document.querySelector(`[data-tab-content="${tab}"]`)?.classList.remove('hidden');
-
-                      const buttons = document.querySelectorAll('[data-tab-button]');
-                      buttons.forEach(b => b.classList.remove('active-tab'));
-                      document.querySelector(`[data-tab-button="${tab}"]`)?.classList.add('active-tab');
-                    }}
-                    data-tab-button={tab}
-                    className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${tab === 'participants'
-                      ? 'bg-gradient-to-r from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-lg active-tab'
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${activeTab === tab
+                      ? 'bg-gradient-to-r from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-lg'
                       : 'bg-[#E8DCC0] text-[#6B4F0F] hover:bg-[#D4A84B]/30'
                       }`}
                   >
@@ -1283,7 +1509,7 @@ export default function RoomDetail() {
             </div>
 
             {/* Participants Tab */}
-            <div data-tab-content="participants">
+            {activeTab === 'participants' && (
               <div className="bg-[#FDF8EC] rounded-2xl p-6 border-2 border-[#D4A84B] shadow-xl">
                 <div className="mb-6">
                   <h3 className="text-[#4A3000] font-bold text-xl flex items-center gap-2">
@@ -1342,10 +1568,10 @@ export default function RoomDetail() {
                   )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Details Tab */}
-            <div data-tab-content="details" className="hidden">
+            {activeTab === 'details' && (
               <div className="bg-[#FDF8EC] rounded-2xl p-6 border-2 border-[#D4A84B] shadow-xl">
                 <div className="mb-6">
                   <h3 className="text-[#4A3000] font-bold text-xl flex items-center gap-2">
@@ -1378,10 +1604,10 @@ export default function RoomDetail() {
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* History Tab */}
-            <div data-tab-content="history" className="hidden">
+            {activeTab === 'history' && (
               <div className="bg-[#FDF8EC] rounded-2xl p-6 border-2 border-[#D4A84B] shadow-xl">
                 <div className="mb-6">
                   <h3 className="text-[#4A3000] font-bold text-xl flex items-center gap-2">
@@ -1442,10 +1668,10 @@ export default function RoomDetail() {
                   )}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }

@@ -2,12 +2,15 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { clearKeypair, isSessionValid, getSessionExpiryInfo, refreshSession } from '@/lib/keypair';
 
+export type LoginMethod = 'google' | 'wallet';
+
 interface User {
   id: string;
   email: string;
   name: string;
   address: string;
   avatar?: string;
+  loginMethod?: LoginMethod; // 'google' for zkLogin, 'wallet' for wallet connection
 }
 
 interface AuthState {

@@ -115,6 +115,18 @@ export default function CreateRoom() {
         : 7 * 24 * 60 * 60 * 1000;
       const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
 
+      // Validate minimum duration
+      if (depositFrequency === "daily" && totalPeriods < 7) {
+        setError("Untuk deposit harian, minimal durasi adalah 7 hari (1 minggu)");
+        setCreateLoading(false);
+        return;
+      }
+      if (depositFrequency === "weekly" && totalPeriods < 1) {
+        setError("Untuk deposit mingguan, minimal durasi adalah 1 minggu");
+        setCreateLoading(false);
+        return;
+      }
+
       const roomData = {
         totalPeriods,
         depositAmount: Number(depositAmount) * 1_000_000, // USDC decimals
@@ -323,11 +335,13 @@ export default function CreateRoom() {
               <input
                 type="date"
                 value={endDate}
-                min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
               />
-              <p className="text-xs text-[#6B4F0F] mt-1">When should this savings goal end?</p>
+              <p className="text-xs text-[#6B4F0F] mt-1">
+                Minimal durasi: {depositFrequency === "daily" ? "7 hari (1 minggu)" : "1 minggu"}
+              </p>
             </div>
 
             {/* Deposit Amount */}
@@ -347,21 +361,42 @@ export default function CreateRoom() {
                 />
               </div>
               {endDate && depositAmount && (
-                <div className="mt-2 bg-[#FFB347]/20 rounded-lg p-2 border border-[#FFB347]/40">
+                <>
+                  <div className="mt-2 bg-[#FFB347]/20 rounded-lg p-2 border border-[#FFB347]/40">
+                    {(() => {
+                      const endDateMs = new Date(endDate).getTime();
+                      const startDateMs = Date.now();
+                      const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+                      const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
+                      const totalGoal = Number(depositAmount) * totalPeriods;
+                      return (
+                        <p className="text-sm text-[#4A3000] font-semibold flex items-center gap-2">
+                          <HiLightBulb className="w-4 h-4 text-[#8B6914]" />
+                          {totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"} · Total Goal: <span className="text-green-700">${totalGoal}</span>
+                        </p>
+                      );
+                    })()}
+                  </div>
                   {(() => {
                     const endDateMs = new Date(endDate).getTime();
                     const startDateMs = Date.now();
                     const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
                     const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
-                    const totalGoal = Number(depositAmount) * totalPeriods;
-                    return (
-                      <p className="text-sm text-[#4A3000] font-semibold flex items-center gap-2">
-                        <HiLightBulb className="w-4 h-4 text-[#8B6914]" />
-                        {totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"} · Total Goal: <span className="text-green-700">${totalGoal}</span>
-                      </p>
-                    );
+                    const isInvalid = (depositFrequency === "daily" && totalPeriods < 7) || (depositFrequency === "weekly" && totalPeriods < 1);
+
+                    if (isInvalid) {
+                      return (
+                        <div className="mt-2 bg-red-100 rounded-lg p-2 border-2 border-red-400">
+                          <p className="text-sm text-red-700 font-semibold flex items-center gap-2">
+                            <HiExclamationCircle className="w-4 h-4" />
+                            ⚠️ Durasi terlalu pendek! Minimal {depositFrequency === "daily" ? "7 hari (1 minggu)" : "1 minggu"}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
                   })()}
-                </div>
+                </>
               )}
             </div>
 
@@ -425,7 +460,22 @@ export default function CreateRoom() {
 
             <button
               onClick={() => setCurrentStep(2)}
-              disabled={!roomName || !endDate || !depositAmount}
+              disabled={(() => {
+                // Check basic fields
+                if (!roomName || !endDate || !depositAmount) return true;
+
+                // Check minimum duration
+                const endDateMs = new Date(endDate).getTime();
+                const startDateMs = Date.now();
+                const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+                const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
+
+                // Daily: minimum 7 days, Weekly: minimum 1 week
+                if (depositFrequency === "daily" && totalPeriods < 7) return true;
+                if (depositFrequency === "weekly" && totalPeriods < 1) return true;
+
+                return false;
+              })()}
               className="w-full py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
             >
               Next: AI Strategy <HiArrowRight className="w-4 h-4" />

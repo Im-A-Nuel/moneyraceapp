@@ -22,7 +22,6 @@ export function buildJoinRoomTx(params: {
   coinsToMerge?: string[]; // Additional coins to merge into primary coin
   clockId: string;
   depositAmount: number; // Amount to deposit (from room config)
-  password?: string; // Password for private rooms (will be hashed with keccak256)
 }): Transaction {
   const tx = new Transaction();
 
@@ -38,23 +37,14 @@ export function buildJoinRoomTx(params: {
   // Split exact amount from the (potentially merged) coin
   const [depositCoin] = tx.splitCoins(primaryCoin, [params.depositAmount]);
 
-  // Hash password if provided, otherwise use empty vector
-  let passwordBytes: Uint8Array;
-  if (params.password) {
-    passwordBytes = keccak_256(new TextEncoder().encode(params.password));
-  } else {
-    passwordBytes = new Uint8Array(0); // Empty Uint8Array for public rooms
-  }
-
-  // Use join_room with the split coin and password
+  // Contract signature: join_room(room, vault, clock, coin)
   tx.moveCall({
-    target: `${PACKAGE_ID}::money_race::join_room`,
+    target: `${PACKAGE_ID}::money_race_v2::join_room`,
     arguments: [
       tx.object(params.roomId),
       tx.object(params.vaultId),
       tx.object(params.clockId),
       depositCoin,
-      tx.pure(bcs.vector(bcs.u8()).serialize(passwordBytes)),
     ],
   });
 
@@ -90,7 +80,7 @@ export function buildDepositTx(params: {
   const [depositCoin] = tx.splitCoins(primaryCoin, [params.depositAmount]);
 
   tx.moveCall({
-    target: `${PACKAGE_ID}::money_race::deposit`,
+    target: `${PACKAGE_ID}::money_race_v2::deposit`,
     arguments: [
       tx.object(params.roomId),
       tx.object(params.vaultId),
@@ -115,7 +105,7 @@ export function buildClaimTx(params: {
   const tx = new Transaction();
 
   tx.moveCall({
-    target: `${PACKAGE_ID}::money_race::claim_all`,
+    target: `${PACKAGE_ID}::money_race_v2::claim_all`,
     arguments: [
       tx.object(params.roomId),
       tx.object(params.vaultId),

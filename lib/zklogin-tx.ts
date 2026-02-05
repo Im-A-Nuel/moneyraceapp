@@ -79,33 +79,93 @@ export async function signAndExecuteSponsoredTx(
 /**
  * Build a sponsored transaction (without executing)
  * Returns txBytes and user signature for manual submission
+ *
+ * @param tx - Transaction to build and sign
+ * @param userAddress - User's Sui address
+ * @param loginMethod - Login method ('google' for zkLogin, 'wallet' for wallet)
+ * @param walletSignFn - Optional wallet sign function (required for wallet login)
  */
 export async function buildSponsoredTx(
   tx: Transaction,
-  userAddress: string
-): Promise<{ txBytes: string; userSignature: string }> {
-  // Load ephemeral keypair
-  const keypair = loadKeypair();
-  if (!keypair) {
-    throw new Error('No ephemeral keypair found. Please login again.');
+  userAddress: string,
+  loginMethod?: 'google' | 'wallet',
+  walletSignFn?: (args: any) => Promise<any>
+): Promise<{ txBytes: string; userSignature: string; executeDirectly?: boolean }> {
+  // Debug logging
+  console.log('buildSponsoredTx called with:', {
+    userAddress,
+    loginMethod,
+    hasWalletSignFn: !!walletSignFn
+  });
+
+  // Sign based on login method
+  if (loginMethod === 'wallet') {
+    // Wallet login: Execute directly WITHOUT sponsored transaction
+    // Wallet pays gas itself
+    if (!walletSignFn) {
+      throw new Error('Wallet sign function is required for wallet login. Please reconnect your wallet.');
+    }
+
+    // Set sender only (no gasOwner for wallet)
+    tx.setSender(userAddress);
+    tx.setGasBudget(100000000);
+
+    try {
+      // Sign and execute with wallet directly
+      const result = await walletSignFn({
+        transaction: tx,
+        chain: 'sui:testnet'
+      });
+
+      console.log('✅ Wallet execution result:', result);
+
+      // Extract digest from signAndExecuteTransaction result
+      // The result structure should be: { digest: string, effects: {...}, ... }
+      const digest = result.digest || result.transactionDigest || result.effects?.transactionDigest || result.effects?.digest || '';
+
+      console.log('Extracted digest:', digest);
+
+      if (!digest) {
+        console.error('Full result object:', JSON.stringify(result, null, 2));
+        throw new Error('Transaction executed but no digest found in wallet response. Check console for full result.');
+      }
+
+      console.log('✅ Transaction executed successfully with digest:', digest);
+
+      // Return digest in txBytes field (reuse for simplicity)
+      // Caller checks executeDirectly flag
+      return {
+        txBytes: digest,
+        userSignature: '',
+        executeDirectly: true,
+      };
+    } catch (error: any) {
+      console.error('Wallet execute error:', error);
+      throw new Error(`Failed to execute with wallet: ${error.message}`);
+    }
+  } else {
+    // Google/zkLogin: Use sponsored transaction
+    const sponsorAddress = await getSponsorAddress();
+
+    // Set sender and gas owner for sponsored tx
+    tx.setSender(userAddress);
+    tx.setGasOwner(sponsorAddress);
+    tx.setGasBudget(100000000);
+
+    const keypair = loadKeypair();
+    if (!keypair) {
+      throw new Error('No ephemeral keypair found. Please login again with Google.');
+    }
+
+    const txBytes = await tx.build({ client: suiClient });
+    const result = await keypair.signTransaction(txBytes);
+
+    return {
+      txBytes: toBase64(txBytes),
+      userSignature: result.signature,
+      executeDirectly: false,
+    };
   }
-
-  // Get sponsor address from backend
-  const sponsorAddress = await getSponsorAddress();
-
-  // Set sender and gas owner
-  tx.setSender(userAddress);
-  tx.setGasOwner(sponsorAddress);
-  tx.setGasBudget(100000000);
-
-  // Build and sign using imported suiClient
-  const txBytes = await tx.build({ client: suiClient });
-  const { signature } = await keypair.signTransaction(txBytes);
-
-  return {
-    txBytes: toBase64(txBytes),
-    userSignature: signature,
-  };
 }
 
 /**

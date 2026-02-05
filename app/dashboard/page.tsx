@@ -42,7 +42,63 @@ interface MyRoom {
   strategyId: number;
   isPrivate: boolean;
   status: number;
+  rewardPool?: number;
+  totalDeposit?: number;
+  initialDeposit?: number;
 }
+
+// Helper to get APY based on strategy name/ID
+const getApyFromStrategy = (strategy: string | number): number => {
+  const s = String(strategy).toLowerCase();
+  if (s.includes('1') || s.includes('conservative') || s.includes('stable')) return 4;
+  if (s.includes('2') || s.includes('balanced')) return 8;
+  if (s.includes('3') || s.includes('aggressive') || s.includes('growth')) return 15;
+  return 5; // Default fallback
+};
+
+// Component for animating yield
+// Component for animating yield
+const LiveYieldDisplay = ({ principal, strategy, startTime, realizedYield = 0 }: { principal: number, strategy: string | number, startTime?: number, realizedYield?: number }) => {
+  const [yieldAmount, setYieldAmount] = useState(realizedYield);
+
+  useEffect(() => {
+    if (!principal || principal <= 0) {
+      setYieldAmount(0);
+      return;
+    }
+
+    const apy = getApyFromStrategy(strategy);
+    // Calculate per-second yield: Principal * (APY/100) / (365 * 24 * 60 * 60)
+    const yieldPerSecond = (principal * (apy / 100)) / 31536000;
+
+    // Initial accrued calculation (Simulated)
+    const now = Date.now();
+    const start = startTime || (now - 10000000); // Default to some time ago if missing
+    const elapsedSeconds = (now - start) / 1000;
+    const initialSimulated = yieldPerSecond * elapsedSeconds;
+
+    // Hybrid Launch: Start at MAX(Realized, Simulated)
+    setYieldAmount(Math.max(realizedYield, initialSimulated));
+
+    const interval = setInterval(() => {
+      setYieldAmount(prev => prev + (yieldPerSecond / 10)); // Update every 100ms
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [principal, strategy, startTime, realizedYield]);
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Principal + Yield = Total Live Value */}
+      <span className="font-bold text-[#4A3000] text-lg tabular-nums">
+        ${(principal + yieldAmount).toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 })}
+      </span>
+      <span className="text-green-600 text-[10px] font-bold flex items-center gap-1 animate-pulse">
+        <HiTrendingUp /> +${yieldAmount.toFixed(6)}
+      </span>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const router = useRouter();
@@ -108,12 +164,12 @@ export default function Dashboard() {
             name: room.name || `Savings Room`,
             roomAddress: room.roomId,
             duration: totalPeriods,
-            weeklyTarget: room.depositAmount / 1_000_000 || 0,
+            weeklyTarget: room.depositAmount / 1_000_000 || 0, // For Active Rooms, backend does NOT divide
             currentPeriod: displayPeriod,
             totalPeriods: totalPeriods,
             participants: 0,
             myDeposit: 0,
-            totalDeposit: 0,
+            totalDeposit: room.totalDeposit || 0, // Use totalDeposit from backend (already divided)
             strategy: `Strategy ${room.strategyId}`,
             status: isEnded ? "ended" : "active",
           };
@@ -139,6 +195,7 @@ export default function Dashboard() {
           return {
             ...room,
             myDeposit: myRoom.myDeposit,
+            totalDeposit: myRoom.totalDeposit || 0, // Update Total Pool from blockchain
             depositsCount: myRoom.depositsCount // Add deposits count for joined rooms
           };
         }
@@ -315,11 +372,11 @@ export default function Dashboard() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-[#E8DCC0] rounded-xl p-3 text-center border border-[#D4A84B]/30">
                       <span className="text-[#8B6914] text-xs font-medium block mb-1">Your Deposit</span>
-                      <span className="text-[#4A3000] text-lg font-bold">${room.myDeposit}</span>
+                      <span className="text-[#4A3000] text-lg font-bold">${room.myDeposit.toFixed(2)}</span>
                     </div>
                     <div className="bg-[#E8DCC0] rounded-xl p-3 text-center border border-[#D4A84B]/30">
                       <span className="text-[#8B6914] text-xs font-medium block mb-1">Total Pool</span>
-                      <span className="text-[#4A3000] text-lg font-bold">${room.totalDeposit}</span>
+                      <span className="text-[#4A3000] text-lg font-bold">${room.totalDeposit.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -379,7 +436,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               {myRooms.map((room) => {
                 const progressPercent = Math.min((room.depositsCount / room.totalPeriods) * 100, 100);
-                const weeklyTarget = room.depositAmount / 1_000_000;
+                const weeklyTarget = room.depositAmount || 0; // Backend already divides by 1M
 
                 return (
                   <div
@@ -442,10 +499,25 @@ export default function Dashboard() {
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-[#E8DCC0] rounded-xl p-3 text-center border border-[#D4A84B]/30">
-                        <span className="text-[#8B6914] text-[10px] uppercase tracking-wide font-medium">Your Deposit</span>
-                        <p className="font-bold text-green-600 text-lg">${room.myDeposit}</p>
-                        <span className="text-[#8B6914]/60 text-[10px]">USDC</span>
+                      <div className="bg-[#E8DCC0] rounded-xl p-3 text-center border border-[#D4A84B]/30 relative overflow-hidden">
+                        <span className="text-[#8B6914] text-[10px] uppercase tracking-wide font-medium relative z-10">Deposit Progress</span>
+                        <div className="relative z-10 flex flex-col items-center">
+                          <span className="font-bold text-[#4A3000] text-lg tabular-nums">
+                            {/* My Deposit / Total Goal */}
+                            {/* Backend already divides by 1M, so use values directly */}
+                            {(() => {
+                              const myDep = room.myDeposit || room.initialDeposit || 0;
+                              const targetPerPeriod = room.depositAmount || 0;
+                              const totalTarget = targetPerPeriod * room.totalPeriods;
+                              return `$${myDep.toLocaleString()} / $${totalTarget.toLocaleString()}`;
+                            })()}
+                          </span>
+                          <span className="text-[#8B6914]/60 text-[10px] font-bold">
+                            USDC
+                          </span>
+                        </div>
+                        {/* Subtle background glow */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-orange-400/10 to-transparent opacity-50" />
                       </div>
                       <div className="bg-[#E8DCC0] rounded-xl p-3 text-center border border-[#D4A84B]/30">
                         <span className="text-[#8B6914] text-[10px] uppercase tracking-wide font-medium">Weekly Target</span>
