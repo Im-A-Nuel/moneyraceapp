@@ -165,34 +165,27 @@ export default function DashboardLayout({ children, activeRoomId }: DashboardLay
         <nav className="flex flex-col h-full">
           {/* Main Menu */}
           <ul className="space-y-1.5">
-            {menuItems.map((item) => (
-              <li key={item.label}>
-                <button
-                  onClick={() => router.push(item.href)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                    isActive(item.href)
-                      ? 'bg-gradient-to-r from-[#D4A84B] to-[#C9963F] text-[#2D1F00] shadow-lg font-bold'
-                      : 'text-[#FFE4A0] hover:bg-[#8B6914]/30 font-medium'
-                  }`}
-                  style={{ fontFamily: "'Press Start 2P', 'Courier New', monospace" }}
-                >
-                  <div className={`${isActive(item.href) ? 'text-[#2D1F00]' : 'text-[#FFE4A0]'}`}>
-                    {item.icon === 'dashboard' ? (
-                      <DashboardIcon size={24} />
-                    ) : item.icon === 'create' ? (
-                      <CirclePlusIcon size={24} />
-                    ) : (
-                      <MenuIcon type={item.icon} />
-                    )}
-                  </div>
-                  <span className="text-[10px] leading-relaxed tracking-wide">{item.label}</span>
-                </button>
-              </li>
-            ))}
+            {/* Dashboard Button - Always First */}
+            <li>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                  isActive("/dashboard")
+                    ? 'bg-gradient-to-r from-[#D4A84B] to-[#C9963F] text-[#2D1F00] shadow-lg font-bold'
+                    : 'text-[#FFE4A0] hover:bg-[#8B6914]/30 font-medium'
+                }`}
+                style={{ fontFamily: "'Press Start 2P', 'Courier New', monospace" }}
+              >
+                <div className={`${isActive("/dashboard") ? 'text-[#2D1F00]' : 'text-[#FFE4A0]'}`}>
+                  <DashboardIcon size={24} />
+                </div>
+                <span className="text-[10px] leading-relaxed tracking-wide">DASHBOARD</span>
+              </button>
+            </li>
 
-            {/* VIEW ROOM Button - Only shows when a room is selected */}
+            {/* VIEW ROOM Button - Shows below Dashboard when room is selected */}
             {currentRoomId && (
-              <li>
+              <li className="pl-4">
                 <button
                   onClick={() => router.push(`/room/${currentRoomId}`)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
@@ -209,6 +202,30 @@ export default function DashboardLayout({ children, activeRoomId }: DashboardLay
                 </button>
               </li>
             )}
+
+            {/* Rest of Menu Items */}
+            {menuItems.slice(1).map((item) => (
+              <li key={item.label}>
+                <button
+                  onClick={() => router.push(item.href)}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                    isActive(item.href)
+                      ? 'bg-gradient-to-r from-[#D4A84B] to-[#C9963F] text-[#2D1F00] shadow-lg font-bold'
+                      : 'text-[#FFE4A0] hover:bg-[#8B6914]/30 font-medium'
+                  }`}
+                  style={{ fontFamily: "'Press Start 2P', 'Courier New', monospace" }}
+                >
+                  <div className={`${isActive(item.href) ? 'text-[#2D1F00]' : 'text-[#FFE4A0]'}`}>
+                    {item.icon === 'create' ? (
+                      <CirclePlusIcon size={24} />
+                    ) : (
+                      <MenuIcon type={item.icon} />
+                    )}
+                  </div>
+                  <span className="text-[10px] leading-relaxed tracking-wide">{item.label}</span>
+                </button>
+              </li>
+            ))}
           </ul>
 
           {/* Divider - lebih subtle */}
