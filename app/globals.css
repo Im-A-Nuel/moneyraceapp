@@ -88,13 +88,14 @@
       linear-gradient(180deg, var(--hero-gradient-start) 0%, var(--hero-gradient-mid) 100%);
   }
 
-  /* WOW Hero Gradient - Layered with glows */
+  /* WOW Hero Gradient - Layered with dramatic glows */
   .bg-hero-wow {
     position: relative;
     background:
-      radial-gradient(circle at 30% 20%, rgba(255, 215, 120, 0.15) 0%, transparent 40%),
-      radial-gradient(circle at 70% 80%, rgba(212, 162, 74, 0.2) 0%, transparent 50%),
-      linear-gradient(135deg, #7B542F 0%, #B6771D 50%, #A06B1A 100%);
+      radial-gradient(circle at 20% 30%, rgba(255, 215, 120, 0.2) 0%, transparent 35%),
+      radial-gradient(circle at 80% 70%, rgba(212, 162, 74, 0.25) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(182, 119, 29, 0.1) 0%, transparent 60%),
+      linear-gradient(135deg, #6B4520 0%, #8B5E17 25%, #B6771D 50%, #A06B1A 75%, #7B542F 100%);
   }
 
   .bg-hero-wow::before {
@@ -102,9 +103,31 @@
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse 800px 600px at 50% 20%, rgba(255, 179, 71, 0.08), transparent),
-      radial-gradient(ellipse 600px 400px at 80% 70%, rgba(212, 162, 74, 0.06), transparent);
+      radial-gradient(ellipse 900px 700px at 30% 20%, rgba(255, 200, 100, 0.12), transparent),
+      radial-gradient(ellipse 700px 500px at 70% 80%, rgba(212, 162, 74, 0.1), transparent),
+      radial-gradient(ellipse 500px 400px at 50% 40%, rgba(255, 179, 71, 0.08), transparent);
     pointer-events: none;
+    animation: heroGlow 8s ease-in-out infinite alternate;
+  }
+
+  .bg-hero-wow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.02;
+    pointer-events: none;
+  }
+
+  @keyframes heroGlow {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0.7;
+      transform: scale(1.05);
+    }
   }
 
   /* Hero gradient */

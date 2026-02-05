@@ -150,7 +150,7 @@ export default function Home() {
                   <div className="bg-red-500/20 border border-red-400/50 rounded-xl p-3 flex items-center gap-2 max-w-md">
                     <HiExclamationCircle className="w-5 h-5 text-red-300 flex-shrink-0" />
                     <p className="text-red-200 text-sm">{loginError}</p>
-                    <button 
+                    <button
                       onClick={() => setLoginError(null)}
                       className="text-red-300 hover:text-white ml-auto text-lg"
                     >
@@ -159,8 +159,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Login buttons - Improved spacing */}
-                <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start pt-4">
+                {/* Login buttons - Compact spacing */}
+                <div className="flex flex-col sm:flex-row items-center gap-2 justify-center lg:justify-start pt-4">
                   {/* Google Sign In Button */}
                   <div className="w-full sm:w-auto">
                     <GoogleLogin
@@ -174,7 +174,7 @@ export default function Home() {
                     />
                   </div>
 
-                  <span className="text-amber-100/80 text-xs font-bold uppercase tracking-wider px-1 my-1">or</span>
+                  <span className="text-amber-100/70 text-xs font-semibold uppercase tracking-wider px-2">or</span>
 
                   {/* Sui Wallet Connect Button */}
                   <div className="sui-wallet-button">
@@ -218,7 +218,7 @@ export default function Home() {
               READY TO LOGIN? ENTER YOUR EMAIL TO CREATE OR USE YOUR WALLET
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row items-center gap-2 justify-center">
               {/* Google Sign In Button */}
               <div className="w-full sm:w-auto">
                 <GoogleLogin
@@ -232,7 +232,7 @@ export default function Home() {
                 />
               </div>
 
-              <span className="text-amber-100/80 text-xs font-bold uppercase tracking-wider px-1 my-1">or</span>
+              <span className="text-amber-100/70 text-xs font-semibold uppercase tracking-wider px-2">or</span>
 
               {/* Sui Wallet Connect Button */}
               <div className="sui-wallet-button">
@@ -245,7 +245,7 @@ export default function Home() {
               <div className="bg-red-500/20 border border-red-400/50 rounded-xl p-3 flex items-center gap-2 max-w-md mx-auto">
                 <HiExclamationCircle className="w-5 h-5 text-red-300 flex-shrink-0" />
                 <p className="text-red-200 text-sm">{loginError}</p>
-                <button 
+                <button
                   onClick={() => setLoginError(null)}
                   className="text-red-300 hover:text-white ml-auto text-lg"
                 >
