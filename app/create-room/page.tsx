@@ -38,8 +38,9 @@ export default function CreateRoom() {
 
   // Form data
   const [roomName, setRoomName] = useState("");
-  const [duration, setDuration] = useState("");
-  const [weeklyTarget, setWeeklyTarget] = useState("");
+  const [depositFrequency, setDepositFrequency] = useState<"daily" | "weekly">("weekly");
+  const [endDate, setEndDate] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [isTestMode, setIsTestMode] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string>("");
@@ -106,19 +107,21 @@ export default function CreateRoom() {
     setError("");
 
     try {
-      const roomData = isTestMode
-        ? convertCreateRoomDataTestMode({
-            name: roomName,
-            duration: Number(duration),
-            weeklyTarget: Number(weeklyTarget),
-            strategyId: selectedStrategy,
-          })
-        : convertCreateRoomData({
-            name: roomName,
-            duration: Number(duration),
-            weeklyTarget: Number(weeklyTarget),
-            strategyId: selectedStrategy,
-          });
+      // Calculate total periods from end date
+      const endDateMs = new Date(endDate).getTime();
+      const startDateMs = Date.now();
+      const periodLengthMs = depositFrequency === "daily"
+        ? 24 * 60 * 60 * 1000
+        : 7 * 24 * 60 * 60 * 1000;
+      const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
+
+      const roomData = {
+        totalPeriods,
+        depositAmount: Number(depositAmount) * 1_000_000, // USDC decimals
+        strategyId: selectedStrategy,
+        startTimeMs: startDateMs - 5000, // 5 second buffer
+        periodLengthMs: isTestMode ? 60 * 1000 : periodLengthMs, // 1 min for test mode
+      };
 
       const roomDataWithPrivacy = { ...roomData, isPrivate };
       const response = await roomAPI.createRoom(roomDataWithPrivacy);
@@ -220,41 +223,38 @@ export default function CreateRoom() {
 
         {/* Progress Steps */}
         <div className="bg-[#C9A86C]/40 rounded-2xl p-4 border-2 border-[#8B6914]/30 mb-6">
-            <div className="flex items-center justify-between">
-              {[
-                { step: 1, label: "Basic Info" },
-                { step: 2, label: "AI Strategy" },
-                { step: 3, label: "Choose" },
-                { step: 4, label: "Review" }
-              ].map(({ step, label }, index) => (
-                <div key={step} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center w-full">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2 ${
-                        currentStep === step
-                          ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-xl scale-110 border-[#FFB347]"
-                          : currentStep > step
-                            ? "bg-gradient-to-br from-[#8B6914] to-[#6B4F0F] text-white shadow-md border-[#8B6914]"
-                            : "bg-[#8B6914]/30 text-[#4A3000]/50 border-[#8B6914]/40"
+          <div className="flex items-center justify-between">
+            {[
+              { step: 1, label: "Basic Info" },
+              { step: 2, label: "AI Strategy" },
+              { step: 3, label: "Choose" },
+              { step: 4, label: "Review" }
+            ].map(({ step, label }, index) => (
+              <div key={step} className="flex items-center flex-1">
+                <div className="flex flex-col items-center w-full">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2 ${currentStep === step
+                      ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-xl scale-110 border-[#FFB347]"
+                      : currentStep > step
+                        ? "bg-gradient-to-br from-[#8B6914] to-[#6B4F0F] text-white shadow-md border-[#8B6914]"
+                        : "bg-[#8B6914]/30 text-[#4A3000]/50 border-[#8B6914]/40"
                       }`}
-                    >
-                      {currentStep > step ? <HiCheckCircle className="w-5 h-5" /> : step}
-                    </div>
-                    <span className={`mt-1 text-xs font-semibold transition-all ${
-                      currentStep >= step ? "text-[#4A3000]" : "text-[#4A3000]/50"
-                    }`}>
-                      {label}
-                    </span>
+                  >
+                    {currentStep > step ? <HiCheckCircle className="w-5 h-5" /> : step}
                   </div>
-                  {index < 3 && (
-                    <div className={`h-1 flex-1 mx-2 rounded-full transition-all duration-300 ${
-                      currentStep > step ? "bg-gradient-to-r from-[#8B6914] to-[#8B6914]" : "bg-[#8B6914]/30"
-                    }`} />
-                  )}
+                  <span className={`mt-1 text-xs font-semibold transition-all ${currentStep >= step ? "text-[#4A3000]" : "text-[#4A3000]/50"
+                    }`}>
+                    {label}
+                  </span>
                 </div>
-              ))}
-            </div>
+                {index < 3 && (
+                  <div className={`h-1 flex-1 mx-2 rounded-full transition-all duration-300 ${currentStep > step ? "bg-gradient-to-r from-[#8B6914] to-[#8B6914]" : "bg-[#8B6914]/30"
+                    }`} />
+                )}
+              </div>
+            ))}
           </div>
+        </div>
 
         {/* Step 1: Basic Information */}
         {currentStep === 1 && (
@@ -284,43 +284,84 @@ export default function CreateRoom() {
               />
             </div>
 
-            {/* Duration */}
+            {/* Deposit Frequency */}
             <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
               <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
                 <HiCalendar className="w-5 h-5 text-[#8B6914]" />
-                Duration (weeks)
+                Deposit Frequency
               </label>
-              <input
-                type="number"
-                placeholder="e.g., 12"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
-              />
-              <p className="text-xs text-[#6B4F0F] mt-1">How many weeks will this savings goal last?</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDepositFrequency("daily")}
+                  className={`flex-1 py-3 rounded-xl font-bold transition-all border-2 ${depositFrequency === "daily"
+                    ? "bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] border-[#D4A84B]"
+                    : "bg-[#FBF7EC] text-[#6B4F0F] border-[#D4A84B]/40 hover:border-[#FFB347]"
+                    }`}
+                >
+                  Daily
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDepositFrequency("weekly")}
+                  className={`flex-1 py-3 rounded-xl font-bold transition-all border-2 ${depositFrequency === "weekly"
+                    ? "bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] border-[#D4A84B]"
+                    : "bg-[#FBF7EC] text-[#6B4F0F] border-[#D4A84B]/40 hover:border-[#FFB347]"
+                    }`}
+                >
+                  Weekly
+                </button>
+              </div>
+              <p className="text-xs text-[#6B4F0F] mt-1">How often do you want to deposit?</p>
             </div>
 
-            {/* Weekly Target */}
+            {/* End Date */}
+            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
+              <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
+                <HiCalendar className="w-5 h-5 text-[#8B6914]" />
+                End Date
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
+              />
+              <p className="text-xs text-[#6B4F0F] mt-1">When should this savings goal end?</p>
+            </div>
+
+            {/* Deposit Amount */}
             <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
               <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
                 <HiCurrencyDollar className="w-5 h-5 text-[#8B6914]" />
-                Weekly Target ($)
+                Deposit Amount ($)
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#4A3000] font-bold text-lg">$</span>
                 <input
                   type="number"
                   placeholder="100"
-                  value={weeklyTarget}
-                  onChange={(e) => setWeeklyTarget(e.target.value)}
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
                 />
               </div>
-              {duration && weeklyTarget && (
+              {endDate && depositAmount && (
                 <div className="mt-2 bg-[#FFB347]/20 rounded-lg p-2 border border-[#FFB347]/40">
-                  <p className="text-sm text-[#4A3000] font-semibold flex items-center gap-2">
-                    <HiLightBulb className="w-4 h-4 text-[#8B6914]" /> Total Goal: <span className="text-green-700">${Number(weeklyTarget) * Number(duration)}</span>
-                  </p>
+                  {(() => {
+                    const endDateMs = new Date(endDate).getTime();
+                    const startDateMs = Date.now();
+                    const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+                    const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
+                    const totalGoal = Number(depositAmount) * totalPeriods;
+                    return (
+                      <p className="text-sm text-[#4A3000] font-semibold flex items-center gap-2">
+                        <HiLightBulb className="w-4 h-4 text-[#8B6914]" />
+                        {totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"} · Total Goal: <span className="text-green-700">${totalGoal}</span>
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -385,7 +426,7 @@ export default function CreateRoom() {
 
             <button
               onClick={() => setCurrentStep(2)}
-              disabled={!roomName || !duration || !weeklyTarget}
+              disabled={!roomName || !endDate || !depositAmount}
               className="w-full py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
             >
               Next: AI Strategy <HiArrowRight className="w-4 h-4" />
@@ -504,11 +545,10 @@ export default function CreateRoom() {
                   <div
                     key={strategy.id}
                     onClick={() => setSelectedStrategy(strategy.id)}
-                    className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 ${
-                      isSelected
-                        ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] border-[#D4A84B] shadow-lg scale-[1.01]"
-                        : `bg-gradient-to-br ${gradients[index] || 'from-gray-50 to-gray-50 border-gray-300'} hover:shadow-md hover:scale-[1.01]`
-                    }`}
+                    className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 ${isSelected
+                      ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] border-[#D4A84B] shadow-lg scale-[1.01]"
+                      : `bg-gradient-to-br ${gradients[index] || 'from-gray-50 to-gray-50 border-gray-300'} hover:shadow-md hover:scale-[1.01]`
+                      }`}
                   >
                     {/* Header */}
                     <div className="flex justify-between items-start mb-3">
@@ -595,9 +635,8 @@ export default function CreateRoom() {
                           {strategy.suggestedTokens.map((token, idx) => (
                             <span
                               key={idx}
-                              className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                isSelected ? 'bg-white/30 text-white' : 'bg-[#FFB347]/30 text-[#4A3000]'
-                              }`}
+                              className={`px-2 py-1 rounded-full text-xs font-bold ${isSelected ? 'bg-white/30 text-white' : 'bg-[#FFB347]/30 text-[#4A3000]'
+                                }`}
                             >
                               {token}
                             </span>
@@ -666,19 +705,33 @@ export default function CreateRoom() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
-                    <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCalendar className="w-4 h-4" /> Duration</span>
-                    <span className="font-bold text-[#4A3000] text-lg">{duration} weeks</span>
+                    <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCalendar className="w-4 h-4" /> Frequency</span>
+                    <span className="font-bold text-[#4A3000] text-lg capitalize">{depositFrequency}</span>
                   </div>
                   <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
-                    <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCurrencyDollar className="w-4 h-4" /> Weekly Target</span>
-                    <span className="font-bold text-[#4A3000] text-lg">${weeklyTarget}</span>
+                    <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCurrencyDollar className="w-4 h-4" /> Deposit Amount</span>
+                    <span className="font-bold text-[#4A3000] text-lg">${depositAmount}</span>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-3 border-2 border-green-300">
-                  <span className="text-green-800 text-xs font-semibold block mb-1 flex items-center gap-1"><FaBullseye className="w-4 h-4" /> Total Goal</span>
-                  <span className="font-bold text-green-700 text-xl">${Number(weeklyTarget) * Number(duration)}</span>
+                <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
+                  <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCalendar className="w-4 h-4" /> End Date</span>
+                  <span className="font-bold text-[#4A3000] text-lg">{endDate ? new Date(endDate).toLocaleDateString() : "N/A"}</span>
                 </div>
+
+                {(() => {
+                  const endDateMs = new Date(endDate).getTime();
+                  const startDateMs = Date.now();
+                  const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+                  const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
+                  const totalGoal = Number(depositAmount) * totalPeriods;
+                  return (
+                    <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-3 border-2 border-green-300">
+                      <span className="text-green-800 text-xs font-semibold block mb-1 flex items-center gap-1"><FaBullseye className="w-4 h-4" /> Total Goal ({totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"})</span>
+                      <span className="font-bold text-green-700 text-xl">${totalGoal}</span>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex items-center justify-between py-2 border-b-2 border-dashed border-[#8B6914]/30">
                   <span className="text-[#6B4F0F] font-medium">Strategy</span>
@@ -717,7 +770,7 @@ export default function CreateRoom() {
                 </li>
                 <li className="flex items-start gap-2">
                   <FaCalendarCheck className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
-                  <span>Deposits must be made weekly to stay eligible</span>
+                  <span>Deposits must be made {depositFrequency} to stay eligible</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <FaTrophy className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
