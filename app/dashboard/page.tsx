@@ -184,31 +184,31 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Tabs - Cleaner, more prominent */}
+      {/* Tabs - Enhanced with better contrast */}
       <div className="flex items-center gap-3 mb-8">
         <button
           onClick={() => setActiveTab("active")}
-          className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === "active"
-            ? 'bg-[#8B6914]/50 text-white shadow-md'
-            : 'bg-[#8B6914]/20 text-[#E8D5A8] hover:bg-[#8B6914]/35'
+          className={`flex-1 px-6 py-3.5 rounded-xl font-bold transition-all duration-200 ${activeTab === "active"
+            ? 'bg-gradient-to-r from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-lg border-2 border-[#FFB347]'
+            : 'bg-[#F5EDD8] text-[#8B6914] hover:bg-[#E8DCC0] border-2 border-[#D4A84B]/40'
             }`}
         >
           Active Rooms ({activeRooms.length})
         </button>
         <button
           onClick={() => setActiveTab("my-rooms")}
-          className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === "my-rooms"
-            ? 'bg-[#8B6914]/50 text-white shadow-md'
-            : 'bg-[#8B6914]/20 text-[#E8D5A8] hover:bg-[#8B6914]/35'
+          className={`flex-1 px-6 py-3.5 rounded-xl font-bold transition-all duration-200 ${activeTab === "my-rooms"
+            ? 'bg-gradient-to-r from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-lg border-2 border-[#FFB347]'
+            : 'bg-[#F5EDD8] text-[#8B6914] hover:bg-[#E8DCC0] border-2 border-[#D4A84B]/40'
             }`}
         >
           My Rooms ({myRooms.length})
         </button>
         <button
           onClick={() => setActiveTab("ended")}
-          className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === "ended"
-            ? 'bg-[#8B6914]/50 text-white shadow-md'
-            : 'bg-[#8B6914]/20 text-[#E8D5A8] hover:bg-[#8B6914]/35'
+          className={`flex-1 px-6 py-3.5 rounded-xl font-bold transition-all duration-200 ${activeTab === "ended"
+            ? 'bg-gradient-to-r from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-lg border-2 border-[#FFB347]'
+            : 'bg-[#F5EDD8] text-[#8B6914] hover:bg-[#E8DCC0] border-2 border-[#D4A84B]/40'
             }`}
         >
           Ended ({endedRooms.length})
@@ -311,15 +311,15 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Stats Grid */}
+                  {/* Stats Grid - Enhanced */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#E8DCC0] rounded-xl p-3 text-center border border-[#D4A84B]/30">
-                      <span className="text-[#8B6914] text-xs font-medium block mb-1">Your Deposit</span>
-                      <span className="text-[#4A3000] text-lg font-bold">${room.myDeposit}</span>
+                    <div className="bg-gradient-to-br from-[#4A9B7F] to-[#3D8068] rounded-xl p-3 text-center shadow-lg">
+                      <span className="text-white/80 text-xs font-medium block mb-1">Your Deposit</span>
+                      <span className="text-white text-lg font-bold">${room.myDeposit}</span>
                     </div>
-                    <div className="bg-[#E8DCC0] rounded-xl p-3 text-center border border-[#D4A84B]/30">
-                      <span className="text-[#8B6914] text-xs font-medium block mb-1">Total Pool</span>
-                      <span className="text-[#4A3000] text-lg font-bold">${room.totalDeposit}</span>
+                    <div className="bg-gradient-to-br from-[#B08D57] to-[#8B6914] rounded-xl p-3 text-center shadow-lg">
+                      <span className="text-white/80 text-xs font-medium block mb-1">Total Pool</span>
+                      <span className="text-white text-lg font-bold">${room.totalDeposit}</span>
                     </div>
                   </div>
                 </div>
