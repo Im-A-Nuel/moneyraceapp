@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Header } from "@/components/ui/Header";
 import { Footer } from "@/components/ui/Footer";
 import { GoldCoin } from "@/components/ui/GoldCoin";
 import { FeatureCard } from "@/components/ui/FeatureCard";
+import { RaceAnimation } from "@/components/ui/RaceAnimation";
 import { GoogleOAuthProvider } from "@/components/GoogleOAuthProvider";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "@/store/auth.store";
 import { authAPI } from "@/lib/api";
 import { getOrCreateKeypairForUser } from "@/lib/keypair";
 import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
-import { HiExclamationCircle } from "react-icons/hi";
+import { HiExclamationCircle, HiLightBulb } from "react-icons/hi";
+import { FaTrophy, FaRobot } from "react-icons/fa";
 
 export default function Home() {
   const router = useRouter();
@@ -108,7 +111,7 @@ export default function Home() {
           </div>
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-16 items-center min-h-[600px]">
-              {/* Left side - Coin */}
+              {/* Left side - Coin with Mascot */}
               <div className="flex justify-center lg:justify-start order-2 lg:order-1">
                 <div className="relative">
                   <GoldCoin size="xl" animate={true} />
@@ -119,6 +122,25 @@ export default function Home() {
                       background: 'radial-gradient(ellipse, rgba(139, 112, 32, 0.6), transparent)',
                     }}
                   />
+
+                  {/* Mascot Ant - BIG & Floating Animation */}
+                  <div className="absolute -right-20 md:-right-32 lg:-right-40 bottom-0 md:bottom-4 animate-bounce-slow z-20">
+                    <div className="relative">
+                      {/* Speech Bubble - Bigger */}
+                      <div className="absolute -top-20 md:-top-24 left-1/2 -translate-x-1/2 bg-white rounded-2xl px-5 py-3 shadow-2xl border-3 border-amber-400 whitespace-nowrap z-10">
+                        <p className="text-base md:text-lg font-black text-[#4A3000]">Join the race! 🏁</p>
+                        {/* Bubble tail */}
+                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-5 h-5 bg-white border-r-3 border-b-3 border-amber-400 rotate-45" />
+                      </div>
+                      <Image
+                        src="/mascotsemut.png"
+                        alt="Money Race Mascot"
+                        width={200}
+                        height={200}
+                        className="drop-shadow-2xl w-32 md:w-44 lg:w-52 h-auto"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -189,16 +211,38 @@ export default function Home() {
         {/* Features Section */}
         <section className="py-24 px-6" style={{ background: 'linear-gradient(180deg, #B6771D 0%, #A06B1A 100%)' }}>
           <div className="max-w-6xl mx-auto">
+            {/* Section Title */}
+            <div className="text-center mb-12">
+              <h2
+                className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4"
+                style={{
+                  fontFamily: 'Impact, Arial Black, sans-serif',
+                  textShadow: '3px 3px 6px rgba(0,0,0,0.3)',
+                }}
+              >
+                WHY MONEY RACE?
+              </h2>
+              <p className="text-amber-100/80 text-lg">Join the race to financial freedom</p>
+            </div>
+
+            {/* Race Animation */}
+            <div className="mb-16">
+              <RaceAnimation />
+            </div>
+
             <div className="grid md:grid-cols-3 gap-8">
               <FeatureCard
+                icon={<HiLightBulb className="w-12 h-12 text-amber-300" />}
                 title="How It Works ?"
                 description="Join a savings room, set your weekly deposit target, and commit to your financial goals. Each week, deposit USDC into the smart contract pool. Stay consistent to remain eligible for rewards. At the end of the challenge, consistent savers share the bonus pool while building healthy financial habits together with the community."
               />
               <FeatureCard
+                icon={<FaRobot className="w-12 h-12 text-amber-300" />}
                 title="AI-Assisted"
                 description="Our intelligent AI analyzes your financial goals, risk tolerance, and saving patterns to recommend the perfect investment strategy. Get personalized suggestions for Conservative, Balanced, or Aggressive approaches. The AI continuously learns from market trends and your preferences to optimize your savings journey and maximize returns."
               />
               <FeatureCard
+                icon={<FaTrophy className="w-12 h-12 text-amber-300" />}
                 title="Rewards"
                 description="Earn rewards for staying consistent! Players who meet their weekly targets share from the bonus pool funded by those who miss deposits. The longer you stay committed, the bigger your share. Top performers receive additional bonuses, NFT badges, and exclusive access to premium rooms with higher reward multipliers."
               />
@@ -207,16 +251,44 @@ export default function Home() {
         </section>
 
         {/* Bottom CTA Section */}
-        <section className="py-20 px-6" style={{ background: 'linear-gradient(180deg, #A06B1A 0%, #8B5E17 100%)' }}>
-          <div className="max-w-2xl mx-auto text-center space-y-8">
-            <p
-              className="text-amber-100/95 text-sm md:text-base font-semibold tracking-wider uppercase"
-              style={{
-                textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
-              }}
-            >
-              READY TO LOGIN? ENTER YOUR EMAIL TO CREATE OR USE YOUR WALLET
-            </p>
+        <section className="py-20 px-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #A06B1A 0%, #8B5E17 100%)' }}>
+          {/* Decorative mascots - BIG! */}
+          <div className="absolute left-0 md:left-10 top-1/2 -translate-y-1/2 opacity-30 md:opacity-60 pointer-events-none animate-bounce-slow">
+            <Image
+              src="/mascotsemut.png"
+              alt=""
+              width={280}
+              height={280}
+              className="w-32 md:w-48 lg:w-56 h-auto transform -scale-x-100"
+            />
+          </div>
+          <div className="absolute right-0 md:right-10 top-1/2 -translate-y-1/2 opacity-30 md:opacity-60 pointer-events-none animate-bounce-slow" style={{ animationDelay: '0.5s' }}>
+            <Image
+              src="/mascotsemut.png"
+              alt=""
+              width={280}
+              height={280}
+              className="w-32 md:w-48 lg:w-56 h-auto"
+            />
+          </div>
+
+          <div className="max-w-2xl mx-auto text-center space-y-8 relative z-10">
+            {/* CTA Header with animation */}
+            <div className="space-y-4">
+              <h2
+                className="text-3xl md:text-4xl font-black text-white"
+                style={{
+                  fontFamily: 'Impact, Arial Black, sans-serif',
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                }}
+              >
+                START YOUR SAVINGS JOURNEY
+              </h2>
+              <p
+                className="text-amber-100/90 text-sm md:text-base font-medium tracking-wide"
+              >
+                Join thousands of savers racing towards financial freedom!</p>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-2 justify-center">
               {/* Google Sign In Button */}

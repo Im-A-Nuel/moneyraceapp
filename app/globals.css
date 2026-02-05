@@ -58,6 +58,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', 'Segoe UI', sans-serif;
@@ -79,6 +80,7 @@
 }
 
 @layer components {
+
   /* Enhanced Gold gradient background with glow */
   .bg-gold-gradient {
     position: relative;
@@ -124,6 +126,7 @@
       opacity: 1;
       transform: scale(1);
     }
+
     100% {
       opacity: 0.7;
       transform: scale(1.05);
@@ -132,11 +135,10 @@
 
   /* Hero gradient */
   .bg-hero-gradient {
-    background: linear-gradient(135deg, 
-      hsl(42, 48%, 72%) 0%, 
-      hsl(38, 52%, 62%) 40%, 
-      hsl(35, 55%, 52%) 100%
-    );
+    background: linear-gradient(135deg,
+        hsl(42, 48%, 72%) 0%,
+        hsl(38, 52%, 62%) 40%,
+        hsl(35, 55%, 52%) 100%);
   }
 
   /* Card glass effect */
@@ -151,9 +153,8 @@
   .btn-gold {
     @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
     background: linear-gradient(135deg,
-      #D4A24A 0%,
-      #B6771D 100%
-    );
+        #D4A24A 0%,
+        #B6771D 100%);
     color: #3A2610;
     box-shadow: 0 4px 15px rgba(123, 84, 47, 0.3);
   }
@@ -167,9 +168,8 @@
   .btn-wallet {
     @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2;
     background: linear-gradient(135deg,
-      #C9944A 0%,
-      #A06B1A 100%
-    );
+        #C9944A 0%,
+        #A06B1A 100%);
     color: #3A2610;
     border: 1px solid rgba(212, 162, 74, 0.4);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -211,13 +211,11 @@
 
   /* Checkered pattern for logo */
   .checkered-pattern {
-    background-image: repeating-linear-gradient(
-      90deg,
-      hsl(30, 50%, 35%) 0px,
-      hsl(30, 50%, 35%) 8px,
-      transparent 8px,
-      transparent 16px
-    );
+    background-image: repeating-linear-gradient(90deg,
+        hsl(30, 50%, 35%) 0px,
+        hsl(30, 50%, 35%) 8px,
+        transparent 8px,
+        transparent 16px);
     background-size: 16px 8px;
   }
 
@@ -228,11 +226,10 @@
 
   /* Gold text gradient */
   .text-gold-gradient {
-    background: linear-gradient(135deg, 
-      hsl(45, 80%, 85%) 0%, 
-      hsl(40, 70%, 70%) 50%,
-      hsl(35, 60%, 55%) 100%
-    );
+    background: linear-gradient(135deg,
+        hsl(45, 80%, 85%) 0%,
+        hsl(40, 70%, 70%) 50%,
+        hsl(35, 60%, 55%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -272,9 +269,8 @@
   .sui-wallet-button button {
     @apply px-8 py-3 rounded-lg font-bold transition-all duration-200;
     background: linear-gradient(135deg,
-      #C9944A 0%,
-      #A06B1A 100%
-    ) !important;
+        #C9944A 0%,
+        #A06B1A 100%) !important;
     color: #3A2610 !important;
     border: 1px solid rgba(212, 162, 74, 0.4) !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
@@ -294,9 +290,12 @@
 
 /* Animations */
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
+
   50% {
     transform: translateY(-10px) rotate(2deg);
   }
@@ -306,6 +305,7 @@
   0% {
     background-position: -200% center;
   }
+
   100% {
     background-position: 200% center;
   }
@@ -315,13 +315,45 @@
   animation: float 4s ease-in-out infinite;
 }
 
+/* Bounce slow animation for mascot */
+@keyframes bounce-slow {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+/* Wiggle animation */
+@keyframes wiggle {
+
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.animate-wiggle {
+  animation: wiggle 2s ease-in-out infinite;
+}
+
 .animate-shine {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    hsla(45, 100%, 90%, 0.4) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      hsla(45, 100%, 90%, 0.4) 50%,
+      transparent 100%);
   background-size: 200% 100%;
   animation: shine 3s ease-in-out infinite;
 }
