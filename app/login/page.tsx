@@ -9,7 +9,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { authAPI } from "@/lib/api";
 import { getOrCreateKeypairForUser } from "@/lib/keypair";
 import { useState, useEffect } from "react";
-import { useCurrentAccount, useConnectWallet } from "@mysten/dapp-kit";
+import { useCurrentAccount, ConnectButton } from "@mysten/dapp-kit";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentAccount = useCurrentAccount();
-  const { mutate: connect } = useConnectWallet();
 
   // If already authenticated with correct login method, redirect to dashboard
   // Don't redirect if wallet is connecting (allow switch from Google to Wallet)
@@ -91,9 +90,9 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const idToken = credentialResponse.credential;
-      
+
       // Decode JWT to get user info
       const base64Url = idToken.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -136,7 +135,7 @@ export default function LoginPage() {
     <GoogleOAuthProvider>
       <main className="min-h-screen bg-gold-gradient overflow-hidden">
         {/* Header */}
-        <Header showSignIn={false} />
+        <Header />
 
         {/* Login Section */}
         <section className="min-h-screen pt-32 pb-20 px-6 flex items-center">
@@ -144,7 +143,7 @@ export default function LoginPage() {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Left side - Login Form */}
               <div className="flex justify-center lg:justify-start order-2 lg:order-1">
-                <div 
+                <div
                   className="w-full max-w-md p-8 rounded-2xl"
                   style={{
                     background: 'hsla(40, 55%, 75%, 0.85)',
@@ -152,7 +151,7 @@ export default function LoginPage() {
                   }}
                 >
                   {/* LOGIN Title */}
-                  <h2 
+                  <h2
                     className="text-2xl font-bold mb-8"
                     style={{ color: 'hsl(35, 70%, 40%)' }}
                   >
@@ -193,19 +192,9 @@ export default function LoginPage() {
                   </div>
 
                   {/* Wallet button */}
-                  <button
-                    onClick={() => connect({}, {
-                      onSuccess: () => console.log('Wallet connected successfully'),
-                      onError: (err) => setError('Failed to connect wallet: ' + err.message)
-                    })}
-                    disabled={isLoading || !!currentAccount}
-                    className="btn-wallet w-full justify-center disabled:opacity-50"
-                  >
-                    <span>{currentAccount ? 'Wallet Connected' : 'Use Wallet'}</span>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                  </button>
+                  <div className="w-full flex justify-center">
+                    <ConnectButton />
+                  </div>
 
                   {/* Loading indicator */}
                   {isLoading && (
@@ -224,9 +213,9 @@ export default function LoginPage() {
 
             {/* Bottom tagline */}
             <div className="text-center mt-16">
-              <h2 
+              <h2
                 className="text-2xl md:text-3xl font-black text-white mb-4 leading-tight"
-                style={{ 
+                style={{
                   fontFamily: 'Impact, Arial Black, sans-serif',
                   textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
                 }}

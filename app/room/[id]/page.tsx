@@ -543,7 +543,6 @@ export default function RoomDetail() {
         coinsToMerge: coinResult.coinsToMerge,
         clockId: SUI_CLOCK_ID,
         depositAmount: depositAmountNumber,
-        password: roomPassword || undefined, // Pass password if room is private
       });
 
       // Auto-detect loginMethod if undefined
@@ -822,8 +821,7 @@ export default function RoomDetail() {
 
     try {
       // 1. Get sponsor address
-      const sponsorData = await getSponsorAddress();
-      const sponsorAddress = sponsorData.sponsorAddress;
+      const sponsorAddress = await getSponsorAddress();
 
       // 2. Build claim transaction
       const claimTx = buildClaimTx({

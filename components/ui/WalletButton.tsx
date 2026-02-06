@@ -7,10 +7,7 @@ export function WalletButton() {
 
   return (
     <div className="sui-wallet-button">
-      <ConnectButton
-        connectText="Connect Wallet"
-        connectedText={`${currentAccount?.address.slice(0, 6)}...${currentAccount?.address.slice(-4)}`}
-      />
+      <ConnectButton connectText="Connect Wallet" />
     </div>
   );
 }

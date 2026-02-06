@@ -15,19 +15,16 @@ const queryClient = new QueryClient({
 });
 
 const { networkConfig } = createNetworkConfig({
-  testnet: { url: 'https://fullnode.testnet.sui.io:443' },
-  mainnet: { url: 'https://fullnode.mainnet.sui.io:443' },
-  devnet: { url: 'https://fullnode.devnet.sui.io:443' },
+  testnet: { url: 'https://fullnode.testnet.sui.io:443', network: 'testnet' },
+  mainnet: { url: 'https://fullnode.mainnet.sui.io:443', network: 'mainnet' },
+  devnet: { url: 'https://fullnode.devnet.sui.io:443', network: 'devnet' },
 });
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
-        <SuiWalletProvider
-          autoConnect={false}
-          storageAdapter={typeof window !== 'undefined' ? window.localStorage : undefined}
-        >
+        <SuiWalletProvider autoConnect={false}>
           {children}
         </SuiWalletProvider>
       </SuiClientProvider>

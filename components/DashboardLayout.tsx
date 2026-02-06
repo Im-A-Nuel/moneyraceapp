@@ -272,7 +272,7 @@ export default function DashboardLayout({ children, activeRoomId }: DashboardLay
             {/* Mascot Avatar */}
             <div className="flex-shrink-0">
               <Image
-                src="/logo_money_race_coin.png"
+                src="/moneyracenew.png"
                 alt="User Avatar"
                 width={32}
                 height={32}

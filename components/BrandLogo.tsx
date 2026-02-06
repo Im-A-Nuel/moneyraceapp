@@ -29,7 +29,7 @@ export function BrandLogo({
     return (
       <div className={`relative ${sizeClasses[size]} aspect-square ${className}`}>
         <Image
-          src="/logo_money_race_coin.png"
+          src="/moneyracenew.png"
           alt="Money Race"
           width={sizeStyles[size].height}
           height={sizeStyles[size].height}
@@ -44,11 +44,10 @@ export function BrandLogo({
     return (
       <div className={`flex items-center ${className}`}>
         <span
-          className={`font-bold tracking-wider ${
-            size === "xl" ? "text-3xl" :
-            size === "lg" ? "text-2xl" :
-            size === "md" ? "text-xl" : "text-lg"
-          }`}
+          className={`font-bold tracking-wider ${size === "xl" ? "text-3xl" :
+              size === "lg" ? "text-2xl" :
+                size === "md" ? "text-xl" : "text-lg"
+            }`}
           style={{ fontFamily: "'Press Start 2P', 'Courier New', monospace" }}
         >
           MONEY RACE
