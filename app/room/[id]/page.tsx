@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -67,13 +67,18 @@ function LiveYieldDisplay({ totalPool, strategy, startTime, realizedYield, stora
   realizedYield: number;
   storageKey: string;
 }) {
-  const [yieldAmount, setYieldAmount] = useState(realizedYield);
-  const lastRealizedYieldRef = useRef(realizedYield);
-  const lastPersistRef = useRef(0);
+  // ⭐ Start with 0 for both server and client (consistent initial state)
+  const [yieldAmount, setYieldAmount] = useState(0);
+  const [isClient, setIsClient] = useState(false);
+
+  // Mark when client-side hydration is complete
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    if (totalPool <= 0 && realizedYield <= 0) {
-      setYieldAmount(0);
+    // Only calculate on client-side (after hydration)
+    if (!isClient || totalPool <= 0) {
       return;
     }
 
@@ -81,56 +86,26 @@ function LiveYieldDisplay({ totalPool, strategy, startTime, realizedYield, stora
     // Calculate per-second yield: TotalPool * APY / (365 * 24 * 60 * 60)
     const yieldPerSecond = (totalPool * apy) / 31536000;
 
-    const now = Date.now();
-    const yieldStorageKey = `liveYield_${storageKey}`;
-    const yieldTsKey = `liveYieldTs_${storageKey}`;
+    // ⭐ PURE TIME-BASED CALCULATION (Ignore blockchain reward)
+    const calculateTimeBasedYield = () => {
+      const now = Date.now();
+      const start = startTime.getTime();
+      const elapsedSeconds = Math.max(0, (now - start) / 1000);
 
-    let baseYield = realizedYield;
-    if (typeof window !== 'undefined') {
-      const storedYield = parseFloat(localStorage.getItem(yieldStorageKey) || "");
-      const storedTs = parseInt(localStorage.getItem(yieldTsKey) || "", 10);
-      if (!Number.isNaN(storedYield) && !Number.isNaN(storedTs) && storedTs > 0) {
-        const elapsedSec = Math.max(0, (now - storedTs) / 1000);
-        const accrued = storedYield + (yieldPerSecond * elapsedSec);
-        baseYield = Math.max(baseYield, accrued);
-      }
-    }
+      // Start from 0, grow based on time only
+      return yieldPerSecond * elapsedSeconds;
+    };
 
-    // If realizedYield from backend increased, sync with it
-    if (realizedYield > lastRealizedYieldRef.current) {
-      console.log('???? Syncing yield with backend:', realizedYield.toFixed(6));
-      baseYield = Math.max(baseYield, realizedYield);
-      lastRealizedYieldRef.current = realizedYield;
-    } else if (lastRealizedYieldRef.current === 0) {
-      // First load - start from backend value
-      lastRealizedYieldRef.current = realizedYield;
-    }
+    // Set initial value from time calculation (only on client)
+    setYieldAmount(calculateTimeBasedYield());
 
-    setYieldAmount(baseYield);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(yieldStorageKey, baseYield.toString());
-      localStorage.setItem(yieldTsKey, now.toString());
-      lastPersistRef.current = now;
-    }
-
-    // Increment by yieldPerSecond / 10 every 100ms
+    // Increment by yieldPerSecond / 10 every 100ms for smooth animation
     const interval = setInterval(() => {
-      setYieldAmount(prev => {
-        const next = prev + (yieldPerSecond / 10);
-        if (typeof window !== 'undefined') {
-          const persistNow = Date.now();
-          if (persistNow - lastPersistRef.current >= 1000) {
-            localStorage.setItem(yieldStorageKey, next.toString());
-            localStorage.setItem(yieldTsKey, persistNow.toString());
-            lastPersistRef.current = persistNow;
-          }
-        }
-        return next;
-      });
+      setYieldAmount(prev => prev + (yieldPerSecond / 10));
     }, 100);
 
     return () => clearInterval(interval);
-  }, [totalPool, strategy, realizedYield, storageKey, startTime]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isClient, totalPool, strategy, startTime]);
 
   return (
     <span className="font-mono tabular-nums">
