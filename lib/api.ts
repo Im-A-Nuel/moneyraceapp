@@ -10,6 +10,16 @@ export const api = axios.create({
   },
 });
 
+// Auto-unwrap backend { success, data: {...} } response format
+// so frontend can read response.balance instead of response.data.balance
+api.interceptors.response.use((response) => {
+  const body = response.data;
+  if (body && typeof body === 'object' && body.success !== undefined && body.data !== undefined) {
+    response.data = { success: body.success, ...body.data };
+  }
+  return response;
+});
+
 /**
  * Get sponsor address for building sponsored transactions
  */

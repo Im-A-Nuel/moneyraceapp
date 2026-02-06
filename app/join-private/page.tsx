@@ -9,8 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { HiKey, HiIdentification, HiSearch, HiArrowRight, HiLightBulb, HiExclamationCircle } from "react-icons/hi";
 import { FaKey, FaDoorOpen, FaHashtag } from "react-icons/fa";
 import { RiDoorOpenFill, RiLockPasswordFill } from "react-icons/ri";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { api } from "@/lib/api";
 
 export default function JoinPrivateRoom() {
   const router = useRouter();
@@ -50,15 +49,10 @@ export default function JoinPrivateRoom() {
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/room/find-by-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
+      const response = await api.post('/room/find-by-password', { password });
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         setError(data.error || "Room not found with this password");
         toast.error("Room Not Found", "No room matches this password. Please check and try again.");
         setLoading(false);
@@ -69,8 +63,9 @@ export default function JoinPrivateRoom() {
       toast.success("Room Found!", "Redirecting to room...");
       router.push(`/room/${data.roomId}`);
     } catch (err: any) {
-      setError("Failed to search for room. Please try again.");
-      toast.error("Connection Error", "Unable to search for room. Please check your connection.");
+      const errorMsg = err.response?.data?.error || "Failed to search for room. Please try again.";
+      setError(errorMsg);
+      toast.error("Room Not Found", errorMsg);
       setLoading(false);
     }
   };

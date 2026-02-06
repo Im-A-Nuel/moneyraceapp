@@ -120,19 +120,21 @@ export default function DashboardLayout({ children, activeRoomId }: DashboardLay
     try {
       const response = await usdcAPI.getBalance(user.address);
       if (response.success) {
-        const balanceInUsdc = response.balance / USDC_DECIMALS;
-        setUsdcBalance(balanceInUsdc.toFixed(2));
+        // Use pre-formatted balance from backend, or calculate from raw balance
+        const formatted = response.balanceFormatted || (Number(response.balance) / USDC_DECIMALS).toFixed(2);
+        setUsdcBalance(formatted);
       }
     } catch (error) {
       console.error('Failed to fetch USDC balance:', error);
     }
   };
 
+  // Refresh balance on mount, page navigation, and every 30s
   useEffect(() => {
     if (user?.address) {
       fetchUSDCBalance();
     }
-  }, [user?.address]);
+  }, [user?.address, pathname]);
 
   // Determine active menu based on pathname
   const isActive = (href: string) => {
@@ -272,7 +274,7 @@ export default function DashboardLayout({ children, activeRoomId }: DashboardLay
             {/* Mascot Avatar */}
             <div className="flex-shrink-0">
               <Image
-                src="/moneyracenew.png"
+                src="/logo_money_race_coin.png"
                 alt="User Avatar"
                 width={32}
                 height={32}

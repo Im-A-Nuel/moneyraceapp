@@ -664,19 +664,54 @@ export default function RoomDetail() {
           toast.success("Welcome!", "Successfully joined the room!");
           fetchRoomData(); // Refresh room data
           fetchParticipants(); // Refresh participants
-        } else if (response.warning) {
-          // Transaction succeeded but couldn't fetch details
-          setIsJoined(true);
-          toast.success("Room Joined!", "Transaction confirmed. Refreshing page to update details...");
-          setTimeout(() => {
-            window.location.reload(); // Refresh to fetch updated data
-          }, 2000);
+          fetchUSDCBalance(); // Refresh balance after join
+        } else if (response.warning || response.digest) {
+          // Transaction was submitted but couldn't get position ID
+          // Wait and verify by checking participants API
+          toast.info("Verifying...", "Confirming your join transaction...");
+          
+          // Wait 3 seconds for blockchain indexing then verify
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Fetch participants to verify join
+          const verifyResponse = await roomAPI.getParticipants(roomId);
+          if (verifyResponse.success && verifyResponse.participants) {
+            const userInParticipants = verifyResponse.participants.some(
+              (p: any) => p.address.toLowerCase() === user.address.toLowerCase()
+            );
+            
+            if (userInParticipants) {
+              // User confirmed in participants - find their position ID
+              const userParticipant = verifyResponse.participants.find(
+                (p: any) => p.address.toLowerCase() === user.address.toLowerCase()
+              );
+              if (userParticipant?.playerPositionId) {
+                localStorage.setItem(`playerPosition_${roomId}_${user.address}`, userParticipant.playerPositionId);
+                setPlayerPositionId(userParticipant.playerPositionId);
+              }
+              setIsJoined(true);
+              setParticipants(verifyResponse.participants.map((p: any) => ({
+                address: p.address,
+                totalDeposit: p.amount / USDC_DECIMALS,
+                depositsCount: p.depositsCount || 1,
+                consistencyScore: 100,
+              })));
+              toast.success("Welcome!", "Successfully joined the room!");
+              fetchRoomData();
+              fetchUSDCBalance();
+            } else {
+              // User NOT in participants - transaction may have failed
+              toast.error("Join Failed", "Transaction may have failed. Please check your wallet and try again.");
+              setError("Could not verify join. Please refresh and try again.");
+            }
+          } else {
+            // Couldn't verify - ask user to refresh
+            toast.warning("Verification Failed", "Please refresh the page to check join status.");
+          }
         } else {
-          // Transaction succeeded but PlayerPosition ID not found
-          toast.success("Room Joined!", "Transaction confirmed. Please refresh the page if needed.");
-          setIsJoined(true);
-          fetchRoomData();
-          fetchParticipants();
+          // No position ID and no digest - shouldn't happen
+          toast.error("Join Failed", "Transaction response incomplete. Please try again.");
+          setError("Join failed - no confirmation received.");
         }
       } else {
         setError(response.error || "Failed to join room");
@@ -1342,10 +1377,27 @@ export default function RoomDetail() {
                 </div>
                 <div className="space-y-4">
                   <div className="bg-[#E8F4E8] border-2 border-[#9BC49B] rounded-xl p-3">
-                    <p className="text-xs text-[#2D5A2D] font-semibold flex items-center gap-2">
-                      <HiCheckCircle className="w-4 h-4" />
-                      You have joined this room
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-[#2D5A2D] font-semibold flex items-center gap-2">
+                        <HiCheckCircle className="w-4 h-4" />
+                        You have joined this room
+                      </p>
+                      {/* Show reset button if user is "joined" but not in participants */}
+                      {participants.length > 0 && !participants.some(p => p.address.toLowerCase() === user?.address?.toLowerCase()) && (
+                        <button
+                          onClick={() => {
+                            // Clear localStorage and reset state
+                            localStorage.removeItem(`playerPosition_${roomId}_${user?.address}`);
+                            setPlayerPositionId(null);
+                            setIsJoined(false);
+                            toast.info("Reset", "Join status cleared. You can try joining again.");
+                          }}
+                          className="text-xs text-red-600 hover:text-red-800 underline"
+                        >
+                          Reset join status
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Period Info */}
