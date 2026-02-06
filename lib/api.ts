@@ -166,8 +166,8 @@ export const roomAPI = {
   },
 
   // Finalize room (Admin only)
-  finalizeRoom: async (roomId: string) => {
-    const response = await api.post('/room/finalize', { roomId });
+  finalizeRoom: async (roomId: string, vaultId: string) => {
+    const response = await api.post('/room/finalize', { roomId, vaultId });
     return response.data;
   },
 

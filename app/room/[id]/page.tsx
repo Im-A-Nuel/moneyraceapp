@@ -833,6 +833,24 @@ export default function RoomDetail() {
   };
 
   const handleClaimReward = async () => {
+    // Prevent multiple claim attempts
+    if (loading) {
+      console.log("⏳ Already processing a claim...");
+      return;
+    }
+
+    // Check if already claimed
+    if (hasClaimed) {
+      setError("You have already claimed your rewards.");
+      return;
+    }
+
+    // Check room status
+    if (roomData?.status !== "finished") {
+      setError("Room must be finalized before claiming rewards.");
+      return;
+    }
+
     // Check if vaultId is available from room data
     if (!roomData?.vaultId) {
       setError("Vault ID not found. Please refresh the page or try again.");
@@ -853,6 +871,7 @@ export default function RoomDetail() {
 
     setLoading(true);
     setError("");
+    console.log("🎁 Starting claim process...");
 
     try {
       // 1. Get sponsor address
@@ -897,17 +916,27 @@ export default function RoomDetail() {
         });
       }
 
-      if (response.success) {
+      if (response.success || response.digest) {
+        console.log("✅ Claim successful! Digest:", response.digest || txBytes);
+        setHasClaimed(true);
         toast.success("Congratulations! 🎉", "Rewards claimed successfully!");
-        window.location.reload(); // Refresh page to update all data
+
+        // Wait a bit before refreshing to ensure transaction is indexed
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
-        setError(response.error || "Failed to claim rewards");
+        const errorMsg = response.error || "Failed to claim rewards";
+        console.error("❌ Claim failed:", errorMsg);
+        setError(errorMsg);
+        toast.error("Claim Failed", errorMsg);
+        setLoading(false);
       }
     } catch (err: any) {
-      console.error("Claim error:", err);
-      setError(err.response?.data?.error || err.message || "Failed to claim rewards");
-      toast.error("Claim Failed", "Unable to claim rewards. Please try again later.");
-    } finally {
+      console.error("❌ Claim error:", err);
+      const errorMsg = err.response?.data?.error || err.message || "Failed to claim rewards";
+      setError(errorMsg);
+      toast.error("Claim Failed", errorMsg);
       setLoading(false);
     }
   };
@@ -918,11 +947,16 @@ export default function RoomDetail() {
       return;
     }
 
+    if (!roomData?.vaultId) {
+      setError("Vault ID not found. Please refresh the page.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const response = await roomAPI.finalizeRoom(roomId);
+      const response = await roomAPI.finalizeRoom(roomId, roomData.vaultId);
 
       if (response.success) {
         toast.success("Room Finalized!", "Page will refresh shortly...");
@@ -1300,7 +1334,7 @@ export default function RoomDetail() {
 
                       <button
                         onClick={handleClaimReward}
-                        disabled={loading}
+                        disabled={loading || hasClaimed}
                         className="w-full px-6 py-4 bg-gradient-to-r from-[#FFB347] to-[#E89530] text-[#4A3000] font-bold rounded-xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 border-2 border-[#D4A84B]"
                       >
                         {loading ? (
