@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { aiAPI, roomAPI, convertCreateRoomData, convertCreateRoomDataTestMode } from "@/lib/api";
+import { USDC_DECIMALS } from "@/lib/constants";
 import DashboardLayout from "@/components/DashboardLayout";
 import { LottieLoading, LottieSpinner } from "@/components/ui/LottieLoading";
 import { useToast } from "@/components/ui/Toast";
@@ -129,7 +130,7 @@ export default function CreateRoom() {
 
       const roomData = {
         totalPeriods,
-        depositAmount: Number(depositAmount) * 1_000_000, // USDC decimals
+        depositAmount: Number(depositAmount) * USDC_DECIMALS, // USDC decimals
         strategyId: selectedStrategy,
         startTimeMs: startDateMs - 5000, // 5 second buffer
         periodLengthMs: isTestMode ? 60 * 1000 : periodLengthMs, // 1 min for test mode
@@ -232,625 +233,625 @@ export default function CreateRoom() {
         <p className="text-white/80 text-sm">Start your savings journey with Money Race!</p>
       </div>
 
-        {/* Progress Steps */}
-        <div className="bg-[#C9A86C]/40 rounded-2xl p-4 border-2 border-[#8B6914]/30 mb-6">
-          <div className="flex items-center justify-between">
-            {[
-              { step: 1, label: "Basic Info" },
-              { step: 2, label: "AI Strategy" },
-              { step: 3, label: "Choose" },
-              { step: 4, label: "Review" }
-            ].map(({ step, label }, index) => (
-              <div key={step} className="flex items-center flex-1">
-                <div className="flex flex-col items-center w-full">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2 ${currentStep === step
-                      ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-xl scale-110 border-[#FFB347]"
-                      : currentStep > step
-                        ? "bg-gradient-to-br from-[#8B6914] to-[#6B4F0F] text-white shadow-md border-[#8B6914]"
-                        : "bg-[#8B6914]/30 text-[#4A3000]/50 border-[#8B6914]/40"
-                      }`}
-                  >
-                    {currentStep > step ? <HiCheckCircle className="w-5 h-5" /> : step}
-                  </div>
-                  <span className={`mt-1 text-xs font-semibold transition-all ${currentStep >= step ? "text-[#4A3000]" : "text-[#4A3000]/50"
-                    }`}>
-                    {label}
-                  </span>
+      {/* Progress Steps */}
+      <div className="bg-[#C9A86C]/40 rounded-2xl p-4 border-2 border-[#8B6914]/30 mb-6">
+        <div className="flex items-center justify-between">
+          {[
+            { step: 1, label: "Basic Info" },
+            { step: 2, label: "AI Strategy" },
+            { step: 3, label: "Choose" },
+            { step: 4, label: "Review" }
+          ].map(({ step, label }, index) => (
+            <div key={step} className="flex items-center flex-1">
+              <div className="flex flex-col items-center w-full">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border-2 ${currentStep === step
+                    ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] text-[#4A3000] shadow-xl scale-110 border-[#FFB347]"
+                    : currentStep > step
+                      ? "bg-gradient-to-br from-[#8B6914] to-[#6B4F0F] text-white shadow-md border-[#8B6914]"
+                      : "bg-[#8B6914]/30 text-[#4A3000]/50 border-[#8B6914]/40"
+                    }`}
+                >
+                  {currentStep > step ? <HiCheckCircle className="w-5 h-5" /> : step}
                 </div>
-                {index < 3 && (
-                  <div className={`h-1 flex-1 mx-2 rounded-full transition-all duration-300 ${currentStep > step ? "bg-gradient-to-r from-[#8B6914] to-[#8B6914]" : "bg-[#8B6914]/30"
-                    }`} />
-                )}
+                <span className={`mt-1 text-xs font-semibold transition-all ${currentStep >= step ? "text-[#4A3000]" : "text-[#4A3000]/50"
+                  }`}>
+                  {label}
+                </span>
               </div>
-            ))}
-          </div>
+              {index < 3 && (
+                <div className={`h-1 flex-1 mx-2 rounded-full transition-all duration-300 ${currentStep > step ? "bg-gradient-to-r from-[#8B6914] to-[#8B6914]" : "bg-[#8B6914]/30"
+                  }`} />
+              )}
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Step 1: Basic Information */}
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg">
-                <HiClipboardCopy className="w-5 h-5 text-[#4A3000]" />
-              </div>
-              <div>
-                <h3 className="text-[#4A3000] font-bold text-lg">Basic Information</h3>
-                <p className="text-[#6B4F0F] text-xs">Set up your savings room details</p>
-              </div>
+      {/* Step 1: Basic Information */}
+      {currentStep === 1 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg">
+              <HiClipboardCopy className="w-5 h-5 text-[#4A3000]" />
             </div>
+            <div>
+              <h3 className="text-[#4A3000] font-bold text-lg">Basic Information</h3>
+              <p className="text-[#6B4F0F] text-xs">Set up your savings room details</p>
+            </div>
+          </div>
 
-            {/* Room Name */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
-              <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
-                <HiHome className="w-5 h-5 text-[#8B6914]" />
-                Room Name
-              </label>
+          {/* Room Name */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
+            <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
+              <HiHome className="w-5 h-5 text-[#8B6914]" />
+              Room Name
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Emergency Fund, Vacation Savings"
+              value={roomName}
+              onChange={(e) => setRoomName(e.target.value)}
+              className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
+            />
+          </div>
+
+          {/* Deposit Frequency */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
+            <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
+              <HiCalendar className="w-5 h-5 text-[#8B6914]" />
+              Deposit Frequency
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDepositFrequency("daily")}
+                className={`flex-1 py-3 rounded-xl font-bold transition-all border-2 ${depositFrequency === "daily"
+                  ? "bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] border-[#D4A84B]"
+                  : "bg-[#FBF7EC] text-[#6B4F0F] border-[#D4A84B]/40 hover:border-[#FFB347]"
+                  }`}
+              >
+                Daily
+              </button>
+              <button
+                type="button"
+                onClick={() => setDepositFrequency("weekly")}
+                className={`flex-1 py-3 rounded-xl font-bold transition-all border-2 ${depositFrequency === "weekly"
+                  ? "bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] border-[#D4A84B]"
+                  : "bg-[#FBF7EC] text-[#6B4F0F] border-[#D4A84B]/40 hover:border-[#FFB347]"
+                  }`}
+              >
+                Weekly
+              </button>
+            </div>
+            <p className="text-xs text-[#6B4F0F] mt-1">How often do you want to deposit?</p>
+          </div>
+
+          {/* End Date */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
+            <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
+              <HiCalendar className="w-5 h-5 text-[#8B6914]" />
+              End Date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
+            />
+            <p className="text-xs text-[#6B4F0F] mt-1">
+              Minimal durasi: {depositFrequency === "daily" ? "7 hari (1 minggu)" : "1 minggu"}
+            </p>
+          </div>
+
+          {/* Deposit Amount */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
+            <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
+              <HiCurrencyDollar className="w-5 h-5 text-[#8B6914]" />
+              Deposit Amount ($)
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#4A3000] font-bold text-lg">$</span>
               <input
-                type="text"
-                placeholder="e.g., Emergency Fund, Vacation Savings"
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
+                type="number"
+                placeholder="100"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
               />
             </div>
-
-            {/* Deposit Frequency */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
-              <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
-                <HiCalendar className="w-5 h-5 text-[#8B6914]" />
-                Deposit Frequency
-              </label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDepositFrequency("daily")}
-                  className={`flex-1 py-3 rounded-xl font-bold transition-all border-2 ${depositFrequency === "daily"
-                    ? "bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] border-[#D4A84B]"
-                    : "bg-[#FBF7EC] text-[#6B4F0F] border-[#D4A84B]/40 hover:border-[#FFB347]"
-                    }`}
-                >
-                  Daily
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDepositFrequency("weekly")}
-                  className={`flex-1 py-3 rounded-xl font-bold transition-all border-2 ${depositFrequency === "weekly"
-                    ? "bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] border-[#D4A84B]"
-                    : "bg-[#FBF7EC] text-[#6B4F0F] border-[#D4A84B]/40 hover:border-[#FFB347]"
-                    }`}
-                >
-                  Weekly
-                </button>
-              </div>
-              <p className="text-xs text-[#6B4F0F] mt-1">How often do you want to deposit?</p>
-            </div>
-
-            {/* End Date */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
-              <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
-                <HiCalendar className="w-5 h-5 text-[#8B6914]" />
-                End Date
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
-              />
-              <p className="text-xs text-[#6B4F0F] mt-1">
-                Minimal durasi: {depositFrequency === "daily" ? "7 hari (1 minggu)" : "1 minggu"}
-              </p>
-            </div>
-
-            {/* Deposit Amount */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
-              <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
-                <HiCurrencyDollar className="w-5 h-5 text-[#8B6914]" />
-                Deposit Amount ($)
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#4A3000] font-bold text-lg">$</span>
-                <input
-                  type="number"
-                  placeholder="100"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all"
-                />
-              </div>
-              {endDate && depositAmount && (
-                <>
-                  <div className="mt-2 bg-[#FFB347]/20 rounded-lg p-2 border border-[#FFB347]/40">
-                    {(() => {
-                      const endDateMs = new Date(endDate).getTime();
-                      const startDateMs = Date.now();
-                      const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
-                      const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
-                      const totalGoal = Number(depositAmount) * totalPeriods;
-                      return (
-                        <p className="text-sm text-[#4A3000] font-semibold flex items-center gap-2">
-                          <HiLightBulb className="w-4 h-4 text-[#8B6914]" />
-                          {totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"} · Total Goal: <span className="text-green-700">${totalGoal}</span>
-                        </p>
-                      );
-                    })()}
-                  </div>
+            {endDate && depositAmount && (
+              <>
+                <div className="mt-2 bg-[#FFB347]/20 rounded-lg p-2 border border-[#FFB347]/40">
                   {(() => {
                     const endDateMs = new Date(endDate).getTime();
                     const startDateMs = Date.now();
                     const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
                     const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
-                    const isInvalid = (depositFrequency === "daily" && totalPeriods < 7) || (depositFrequency === "weekly" && totalPeriods < 1);
-
-                    if (isInvalid) {
-                      return (
-                        <div className="mt-2 bg-red-100 rounded-lg p-2 border-2 border-red-400">
-                          <p className="text-sm text-red-700 font-semibold flex items-center gap-2">
-                            <HiExclamationCircle className="w-4 h-4" />
-                            ⚠️ Durasi terlalu pendek! Minimal {depositFrequency === "daily" ? "7 hari (1 minggu)" : "1 minggu"}
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
+                    const totalGoal = Number(depositAmount) * totalPeriods;
+                    return (
+                      <p className="text-sm text-[#4A3000] font-semibold flex items-center gap-2">
+                        <HiLightBulb className="w-4 h-4 text-[#8B6914]" />
+                        {totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"} · Total Goal: <span className="text-green-700">${totalGoal}</span>
+                      </p>
+                    );
                   })()}
-                </>
-              )}
-            </div>
-
-            {/* Privacy Settings */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={isPrivate}
-                    onChange={(e) => setIsPrivate(e.target.checked)}
-                    className="w-6 h-6 accent-[#FFB347] cursor-pointer"
-                  />
                 </div>
-                <div className="flex-1">
-                  <span className="text-[#4A3000] font-semibold flex items-center gap-2">
-                    <HiLockClosed className="w-5 h-5 text-[#8B6914]" />
-                    Make this a private room
-                  </span>
-                  <p className="text-xs text-[#6B4F0F] mt-1">Only people with password can join</p>
-                </div>
-              </label>
-              {isPrivate && (
-                <div className="mt-4 bg-gradient-to-r from-[#D4A84B]/20 to-[#FFB347]/20 border-2 border-[#D4A84B]/40 rounded-xl p-4">
-                  <p className="text-[#4A3000] text-sm font-semibold flex items-center gap-2">
-                    <RiLockPasswordFill className="w-5 h-5 text-[#8B6914]" />
-                    A secure password will be automatically generated for this room
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Test Mode */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#FFB347]/60 shadow-md">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={isTestMode}
-                    onChange={(e) => setIsTestMode(e.target.checked)}
-                    className="w-5 h-5 accent-[#FF8C00] cursor-pointer"
-                  />
-                </div>
-                <div className="flex-1">
-                  <span className="text-[#4A3000] font-semibold flex items-center gap-2">
-                    <HiBeaker className="w-5 h-5 text-[#FF8C00]" />
-                    Enable Test Mode
-                  </span>
-                  <p className="text-xs text-[#6B4F0F] mt-1">1 minute periods for quick testing</p>
-                </div>
-              </label>
-              {isTestMode && (
-                <div className="mt-3 bg-[#FF8C00]/20 border-2 border-[#FF8C00]/40 rounded-xl p-3">
-                  <p className="text-[#4A3000] text-sm font-semibold flex items-center gap-2">
-                    <HiSparkles className="w-5 h-5 text-[#FF8C00]" />
-                    Each "week" will be only 1 minute long for testing purposes
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setCurrentStep(2)}
-              disabled={(() => {
-                // Check basic fields
-                if (!roomName || !endDate || !depositAmount) return true;
-
-                // Check minimum duration
-                const endDateMs = new Date(endDate).getTime();
-                const startDateMs = Date.now();
-                const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
-                const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
-
-                // Daily: minimum 7 days, Weekly: minimum 1 week
-                if (depositFrequency === "daily" && totalPeriods < 7) return true;
-                if (depositFrequency === "weekly" && totalPeriods < 1) return true;
-
-                return false;
-              })()}
-              className="w-full py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
-            >
-              Next: AI Strategy <HiArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Step 2: AI Strategy */}
-        {currentStep === 2 && (
-          <div className="space-y-4">
-            {/* Header with AI Icon */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg animate-pulse">
-                <FaRobot className="w-5 h-5 text-[#4A3000]" />
-              </div>
-              <div>
-                <h3 className="text-[#4A3000] font-bold text-lg">AI Strategy Recommendation</h3>
-                <p className="text-[#6B4F0F] text-xs">Let AI help you choose the best strategy</p>
-              </div>
-            </div>
-
-            {/* Info Card */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#FFB347]/50 shadow-md">
-              <p className="text-[#4A3000] text-sm font-medium flex items-start gap-2">
-                <HiLightBulb className="w-5 h-5 text-[#FFB347] flex-shrink-0" />
-                <span>Describe your saving goals and let our AI recommend the best investment strategy tailored to your needs!</span>
-              </p>
-            </div>
-
-            {error && (
-              <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
-                <HiExclamationCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-                <p className="text-red-800 text-sm font-medium flex-1">{error}</p>
-              </div>
-            )}
-
-            {/* AI Prompt Input */}
-            <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
-              <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
-                <HiSparkles className="w-5 h-5 text-[#FFB347]" />
-                What are you saving for?
-              </label>
-              <textarea
-                placeholder="Example: I want to build an emergency fund for unexpected expenses. I prefer low risk and steady growth to ensure my savings are safe."
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all resize-none"
-              />
-              <p className="text-xs text-[#6B4F0F] mt-1">Be specific about your goals, timeline, and risk tolerance for better recommendations</p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCurrentStep(1)}
-                disabled={aiLoading}
-                className="flex-1 py-2.5 bg-[#8B6914]/30 text-[#4A3000] font-bold rounded-lg border-2 border-[#8B6914]/50 hover:bg-[#8B6914]/40 transition-all disabled:opacity-50 text-sm"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleAISubmit}
-                disabled={!aiPrompt || aiLoading}
-                className="flex-1 py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                {aiLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <LottieSpinner size={24} />
-                    Analyzing...
-                  </span>
-                ) : "Get AI Recommendations"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Choose Strategy */}
-        {currentStep === 3 && (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg">
-                <FaBullseye className="w-5 h-5 text-[#4A3000]" />
-              </div>
-              <div>
-                <h3 className="text-[#4A3000] font-bold text-lg">AI Recommendations</h3>
-                <p className="text-[#6B4F0F] text-xs">Choose the strategy that fits you best</p>
-              </div>
-            </div>
-
-            {/* User Prompt Display */}
-            <div className="bg-gradient-to-br from-[#D4A84B]/20 to-[#FFB347]/20 rounded-xl p-3 border-2 border-[#D4A84B]/40">
-              <p className="text-xs text-[#6B4F0F] font-semibold mb-1 flex items-center gap-1"><HiDocumentText className="w-4 h-4" /> Based on your goal:</p>
-              <p className="text-sm text-[#4A3000] italic line-clamp-2">"{aiPrompt}"</p>
-            </div>
-
-            {error && (
-              <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
-                <HiExclamationCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-                <p className="text-red-800 text-sm font-medium flex-1">{error}</p>
-              </div>
-            )}
-
-            {/* Strategy Cards */}
-            <div className="space-y-3">
-              {strategies.map((strategy, index) => {
-                const StrategyIcons = [FaShieldAlt, FaBalanceScale, FaRocket];
-                const gradients = [
-                  "from-green-50 to-emerald-50 border-green-300",
-                  "from-blue-50 to-cyan-50 border-blue-300",
-                  "from-orange-50 to-amber-50 border-orange-300"
-                ];
-                const isSelected = selectedStrategy === strategy.id;
-
-                return (
-                  <div
-                    key={strategy.id}
-                    onClick={() => setSelectedStrategy(strategy.id)}
-                    className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 ${isSelected
-                      ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] border-[#D4A84B] shadow-lg scale-[1.01]"
-                      : `bg-gradient-to-br ${gradients[index] || 'from-gray-50 to-gray-50 border-gray-300'} hover:shadow-md hover:scale-[1.01]`
-                      }`}
-                  >
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        {(() => { const IconComponent = StrategyIcons[index] || FaGem; return <IconComponent className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-[#4A3000]'}`} />; })()}
-                        <h4 className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-[#4A3000]'}`}>
-                          {strategy.name}
-                        </h4>
-                      </div>
-                      {isSelected && (
-                        <div className="bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                          <span className="text-green-600 font-bold text-sm">✓</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* APY and Risk */}
-                    <div className="flex gap-2 mb-3">
-                      <div className={`flex-1 px-3 py-2 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-white/80'}`}>
-                        <span className={`text-xs font-semibold block ${isSelected ? 'text-white/80' : 'text-[#6B4F0F]'}`}>Expected APY</span>
-                        <p className={`text-base font-bold ${isSelected ? 'text-white' : 'text-green-700'}`}>
-                          {strategy.expectedReturn}%
-                        </p>
-                      </div>
-                      <div className={`flex-1 px-3 py-2 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-white/80'}`}>
-                        <span className={`text-xs font-semibold block ${isSelected ? 'text-white/80' : 'text-[#6B4F0F]'}`}>Risk Level</span>
-                        <p className={`text-base font-bold ${isSelected ? 'text-white' : 'text-orange-700'}`}>
-                          {strategy.risk === 15 ? 'Low' : strategy.risk === 35 ? 'Medium' : 'High'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* DeFi Protocols */}
-                    {strategy.protocols && strategy.protocols.length > 0 && (
-                      <div className={`mb-3 p-3 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-white/60'}`}>
-                        <p className={`text-xs font-semibold mb-2 ${isSelected ? 'text-white/90' : 'text-[#4A3000]'}`}>
-                          📊 DeFi Protocols:
-                        </p>
-                        <div className="space-y-1.5">
-                          {strategy.protocols.map((protocol, idx) => (
-                            <div key={idx} className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-[#4A3000]'}`}>
-                                  • {protocol.name}
-                                </span>
-                                <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-[#6B4F0F]'}`}>
-                                  ({protocol.type})
-                                </span>
-                              </div>
-                              <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-green-700'}`}>
-                                {protocol.apy}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Allocation */}
-                    {strategy.allocation && Object.keys(strategy.allocation).length > 0 && (
-                      <div className={`mb-3 p-3 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-white/60'}`}>
-                        <p className={`text-xs font-semibold mb-2 ${isSelected ? 'text-white/90' : 'text-[#4A3000]'}`}>
-                          💰 Allocation:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(strategy.allocation).map(([key, value]) => (
-                            <div key={key} className={`px-2 py-1 rounded ${isSelected ? 'bg-white/20' : 'bg-white/80'}`}>
-                              <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-[#4A3000]'}`}>
-                                {key.charAt(0).toUpperCase() + key.slice(1)}: <strong>{value}%</strong>
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Suggested Tokens */}
-                    {strategy.suggestedTokens && strategy.suggestedTokens.length > 0 && (
-                      <div className={`mb-3 p-3 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-white/60'}`}>
-                        <p className={`text-xs font-semibold mb-2 ${isSelected ? 'text-white/90' : 'text-[#4A3000]'}`}>
-                          🪙 Tokens:
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {strategy.suggestedTokens.map((token, idx) => (
-                            <span
-                              key={idx}
-                              className={`px-2 py-1 rounded-full text-xs font-bold ${isSelected ? 'bg-white/30 text-white' : 'bg-[#FFB347]/30 text-[#4A3000]'
-                                }`}
-                            >
-                              {token}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Description/Reasoning */}
-                    <p className={`text-xs leading-relaxed ${isSelected ? 'text-white/90' : 'text-[#6B4F0F]'}`}>
-                      {strategy.description}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCurrentStep(2)}
-                className="flex-1 py-2.5 bg-[#8B6914]/30 text-[#4A3000] font-bold rounded-lg border-2 border-[#8B6914]/50 hover:bg-[#8B6914]/40 transition-all text-sm"
-              >
-                Back
-              </button>
-              <button
-                onClick={() => setCurrentStep(4)}
-                disabled={selectedStrategy === null}
-                className="flex-1 py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                Next: Review
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Review */}
-        {currentStep === 4 && (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg">
-                <HiCheckCircle className="w-5 h-5 text-[#4A3000]" />
-              </div>
-              <div>
-                <h3 className="text-[#4A3000] font-bold text-lg">Review & Confirm</h3>
-                <p className="text-[#6B4F0F] text-xs">Double check your room settings</p>
-              </div>
-            </div>
-
-            {error && (
-              <div className="bg-red-100 border-2 border-red-300 rounded-xl p-3 flex items-start gap-3">
-                <HiExclamationCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                <p className="text-red-800 text-sm font-medium flex-1">{error}</p>
-              </div>
-            )}
-
-            {/* Room Details Card */}
-            <div className="bg-gradient-to-br from-[#E8D5A8] to-[#D4A84B]/30 rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-lg">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b-2 border-dashed border-[#8B6914]/30">
-                  <span className="text-[#6B4F0F] font-medium flex items-center gap-2">
-                    <HiHome className="w-5 h-5 text-[#8B6914]" /> Room Name
-                  </span>
-                  <span className="font-bold text-[#4A3000] text-lg">{roomName}</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
-                    <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCalendar className="w-4 h-4" /> Frequency</span>
-                    <span className="font-bold text-[#4A3000] text-lg capitalize">{depositFrequency}</span>
-                  </div>
-                  <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
-                    <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCurrencyDollar className="w-4 h-4" /> Deposit Amount</span>
-                    <span className="font-bold text-[#4A3000] text-lg">${depositAmount}</span>
-                  </div>
-                </div>
-
-                <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
-                  <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCalendar className="w-4 h-4" /> End Date</span>
-                  <span className="font-bold text-[#4A3000] text-lg">{endDate ? new Date(endDate).toLocaleDateString() : "N/A"}</span>
-                </div>
-
                 {(() => {
                   const endDateMs = new Date(endDate).getTime();
                   const startDateMs = Date.now();
                   const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
                   const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
-                  const totalGoal = Number(depositAmount) * totalPeriods;
-                  return (
-                    <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-3 border-2 border-green-300">
-                      <span className="text-green-800 text-xs font-semibold block mb-1 flex items-center gap-1"><FaBullseye className="w-4 h-4" /> Total Goal ({totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"})</span>
-                      <span className="font-bold text-green-700 text-xl">${totalGoal}</span>
-                    </div>
-                  );
+                  const isInvalid = (depositFrequency === "daily" && totalPeriods < 7) || (depositFrequency === "weekly" && totalPeriods < 1);
+
+                  if (isInvalid) {
+                    return (
+                      <div className="mt-2 bg-red-100 rounded-lg p-2 border-2 border-red-400">
+                        <p className="text-sm text-red-700 font-semibold flex items-center gap-2">
+                          <HiExclamationCircle className="w-4 h-4" />
+                          ⚠️ Durasi terlalu pendek! Minimal {depositFrequency === "daily" ? "7 hari (1 minggu)" : "1 minggu"}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
                 })()}
+              </>
+            )}
+          </div>
 
-                <div className="flex items-center justify-between py-2 border-b-2 border-dashed border-[#8B6914]/30">
-                  <span className="text-[#6B4F0F] font-medium">Strategy</span>
-                  <span className="font-bold text-[#4A3000] bg-[#FFB347]/30 px-3 py-1.5 rounded-lg text-sm">
-                    {strategies.find(s => s.id === selectedStrategy)?.name || "N/A"}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-2 border-b-2 border-dashed border-[#8B6914]/30">
-                  <span className="text-[#6B4F0F] font-medium">Room Type</span>
-                  <span className="font-bold text-[#4A3000] flex items-center gap-2">
-                    {isPrivate ? <><HiLockClosed className="w-4 h-4" /> Private</> : <><HiGlobeAlt className="w-4 h-4" /> Public</>}
-                  </span>
-                </div>
-
-                {isTestMode && (
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-[#6B4F0F] font-medium">Mode</span>
-                    <span className="font-bold text-[#E89530] bg-[#FF8C00]/20 px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm">
-                      <HiBeaker className="w-4 h-4" /> Test Mode
-                    </span>
-                  </div>
-                )}
+          {/* Privacy Settings */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={isPrivate}
+                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  className="w-6 h-6 accent-[#FFB347] cursor-pointer"
+                />
               </div>
-            </div>
+              <div className="flex-1">
+                <span className="text-[#4A3000] font-semibold flex items-center gap-2">
+                  <HiLockClosed className="w-5 h-5 text-[#8B6914]" />
+                  Make this a private room
+                </span>
+                <p className="text-xs text-[#6B4F0F] mt-1">Only people with password can join</p>
+              </div>
+            </label>
+            {isPrivate && (
+              <div className="mt-4 bg-gradient-to-r from-[#D4A84B]/20 to-[#FFB347]/20 border-2 border-[#D4A84B]/40 rounded-xl p-4">
+                <p className="text-[#4A3000] text-sm font-semibold flex items-center gap-2">
+                  <RiLockPasswordFill className="w-5 h-5 text-[#8B6914]" />
+                  A secure password will be automatically generated for this room
+                </p>
+              </div>
+            )}
+          </div>
 
-            {/* Important Notice */}
-            <div className="bg-gradient-to-br from-[#FFB347]/20 to-[#E89530]/20 border-2 border-[#FFB347]/60 rounded-xl p-3">
-              <p className="font-bold text-[#4A3000] mb-2 flex items-center gap-2 text-sm">
-                <FaInfoCircle className="w-4 h-4 text-[#E89530]" /> Important Information
-              </p>
-              <ul className="text-[#4A3000] text-xs space-y-1.5">
-                <li className="flex items-start gap-2">
-                  <RiShieldCheckFill className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
-                  <span>Strategy cannot be changed once the room starts</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FaCalendarCheck className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
-                  <span>Deposits must be made {depositFrequency} to stay eligible</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <FaTrophy className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
-                  <span>Rewards distributed at the end based on consistency</span>
-                </li>
-              </ul>
-            </div>
+          {/* Test Mode */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#FFB347]/60 shadow-md">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={isTestMode}
+                  onChange={(e) => setIsTestMode(e.target.checked)}
+                  className="w-5 h-5 accent-[#FF8C00] cursor-pointer"
+                />
+              </div>
+              <div className="flex-1">
+                <span className="text-[#4A3000] font-semibold flex items-center gap-2">
+                  <HiBeaker className="w-5 h-5 text-[#FF8C00]" />
+                  Enable Test Mode
+                </span>
+                <p className="text-xs text-[#6B4F0F] mt-1">1 minute periods for quick testing</p>
+              </div>
+            </label>
+            {isTestMode && (
+              <div className="mt-3 bg-[#FF8C00]/20 border-2 border-[#FF8C00]/40 rounded-xl p-3">
+                <p className="text-[#4A3000] text-sm font-semibold flex items-center gap-2">
+                  <HiSparkles className="w-5 h-5 text-[#FF8C00]" />
+                  Each "week" will be only 1 minute long for testing purposes
+                </p>
+              </div>
+            )}
+          </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCurrentStep(3)}
-                disabled={createLoading}
-                className="flex-1 py-2.5 bg-[#8B6914]/30 text-[#4A3000] font-bold rounded-lg border-2 border-[#8B6914]/50 hover:bg-[#8B6914]/40 transition-all disabled:opacity-50 text-sm"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleCreateRoom}
-                disabled={createLoading}
-                className="flex-1 py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                {createLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <LottieSpinner size={24} />
-                    Creating...
-                  </span>
-                ) : "Create Room"}
-              </button>
+          <button
+            onClick={() => setCurrentStep(2)}
+            disabled={(() => {
+              // Check basic fields
+              if (!roomName || !endDate || !depositAmount) return true;
+
+              // Check minimum duration
+              const endDateMs = new Date(endDate).getTime();
+              const startDateMs = Date.now();
+              const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+              const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
+
+              // Daily: minimum 7 days, Weekly: minimum 1 week
+              if (depositFrequency === "daily" && totalPeriods < 7) return true;
+              if (depositFrequency === "weekly" && totalPeriods < 1) return true;
+
+              return false;
+            })()}
+            className="w-full py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+          >
+            Next: AI Strategy <HiArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Step 2: AI Strategy */}
+      {currentStep === 2 && (
+        <div className="space-y-4">
+          {/* Header with AI Icon */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg animate-pulse">
+              <FaRobot className="w-5 h-5 text-[#4A3000]" />
+            </div>
+            <div>
+              <h3 className="text-[#4A3000] font-bold text-lg">AI Strategy Recommendation</h3>
+              <p className="text-[#6B4F0F] text-xs">Let AI help you choose the best strategy</p>
             </div>
           </div>
-        )}
+
+          {/* Info Card */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#FFB347]/50 shadow-md">
+            <p className="text-[#4A3000] text-sm font-medium flex items-start gap-2">
+              <HiLightBulb className="w-5 h-5 text-[#FFB347] flex-shrink-0" />
+              <span>Describe your saving goals and let our AI recommend the best investment strategy tailored to your needs!</span>
+            </p>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
+              <HiExclamationCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+              <p className="text-red-800 text-sm font-medium flex-1">{error}</p>
+            </div>
+          )}
+
+          {/* AI Prompt Input */}
+          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-md">
+            <label className="flex items-center gap-2 text-[#4A3000] font-semibold mb-2">
+              <HiSparkles className="w-5 h-5 text-[#FFB347]" />
+              What are you saving for?
+            </label>
+            <textarea
+              placeholder="Example: I want to build an emergency fund for unexpected expenses. I prefer low risk and steady growth to ensure my savings are safe."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-3 bg-[#FBF7EC] rounded-xl border-2 border-[#D4A84B]/40 text-[#4A3000] placeholder-[#8B6914]/40 focus:outline-none focus:border-[#FFB347] focus:ring-2 focus:ring-[#FFB347]/30 transition-all resize-none"
+            />
+            <p className="text-xs text-[#6B4F0F] mt-1">Be specific about your goals, timeline, and risk tolerance for better recommendations</p>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCurrentStep(1)}
+              disabled={aiLoading}
+              className="flex-1 py-2.5 bg-[#8B6914]/30 text-[#4A3000] font-bold rounded-lg border-2 border-[#8B6914]/50 hover:bg-[#8B6914]/40 transition-all disabled:opacity-50 text-sm"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleAISubmit}
+              disabled={!aiPrompt || aiLoading}
+              className="flex-1 py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              {aiLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <LottieSpinner size={24} />
+                  Analyzing...
+                </span>
+              ) : "Get AI Recommendations"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Choose Strategy */}
+      {currentStep === 3 && (
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg">
+              <FaBullseye className="w-5 h-5 text-[#4A3000]" />
+            </div>
+            <div>
+              <h3 className="text-[#4A3000] font-bold text-lg">AI Recommendations</h3>
+              <p className="text-[#6B4F0F] text-xs">Choose the strategy that fits you best</p>
+            </div>
+          </div>
+
+          {/* User Prompt Display */}
+          <div className="bg-gradient-to-br from-[#D4A84B]/20 to-[#FFB347]/20 rounded-xl p-3 border-2 border-[#D4A84B]/40">
+            <p className="text-xs text-[#6B4F0F] font-semibold mb-1 flex items-center gap-1"><HiDocumentText className="w-4 h-4" /> Based on your goal:</p>
+            <p className="text-sm text-[#4A3000] italic line-clamp-2">"{aiPrompt}"</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
+              <HiExclamationCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+              <p className="text-red-800 text-sm font-medium flex-1">{error}</p>
+            </div>
+          )}
+
+          {/* Strategy Cards */}
+          <div className="space-y-3">
+            {strategies.map((strategy, index) => {
+              const StrategyIcons = [FaShieldAlt, FaBalanceScale, FaRocket];
+              const gradients = [
+                "from-green-50 to-emerald-50 border-green-300",
+                "from-blue-50 to-cyan-50 border-blue-300",
+                "from-orange-50 to-amber-50 border-orange-300"
+              ];
+              const isSelected = selectedStrategy === strategy.id;
+
+              return (
+                <div
+                  key={strategy.id}
+                  onClick={() => setSelectedStrategy(strategy.id)}
+                  className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 ${isSelected
+                    ? "bg-gradient-to-br from-[#FFB347] to-[#E89530] border-[#D4A84B] shadow-lg scale-[1.01]"
+                    : `bg-gradient-to-br ${gradients[index] || 'from-gray-50 to-gray-50 border-gray-300'} hover:shadow-md hover:scale-[1.01]`
+                    }`}
+                >
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      {(() => { const IconComponent = StrategyIcons[index] || FaGem; return <IconComponent className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-[#4A3000]'}`} />; })()}
+                      <h4 className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-[#4A3000]'}`}>
+                        {strategy.name}
+                      </h4>
+                    </div>
+                    {isSelected && (
+                      <div className="bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                        <span className="text-green-600 font-bold text-sm">✓</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* APY and Risk */}
+                  <div className="flex gap-2 mb-3">
+                    <div className={`flex-1 px-3 py-2 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-white/80'}`}>
+                      <span className={`text-xs font-semibold block ${isSelected ? 'text-white/80' : 'text-[#6B4F0F]'}`}>Expected APY</span>
+                      <p className={`text-base font-bold ${isSelected ? 'text-white' : 'text-green-700'}`}>
+                        {strategy.expectedReturn}%
+                      </p>
+                    </div>
+                    <div className={`flex-1 px-3 py-2 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-white/80'}`}>
+                      <span className={`text-xs font-semibold block ${isSelected ? 'text-white/80' : 'text-[#6B4F0F]'}`}>Risk Level</span>
+                      <p className={`text-base font-bold ${isSelected ? 'text-white' : 'text-orange-700'}`}>
+                        {strategy.risk === 15 ? 'Low' : strategy.risk === 35 ? 'Medium' : 'High'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* DeFi Protocols */}
+                  {strategy.protocols && strategy.protocols.length > 0 && (
+                    <div className={`mb-3 p-3 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-white/60'}`}>
+                      <p className={`text-xs font-semibold mb-2 ${isSelected ? 'text-white/90' : 'text-[#4A3000]'}`}>
+                        📊 DeFi Protocols:
+                      </p>
+                      <div className="space-y-1.5">
+                        {strategy.protocols.map((protocol, idx) => (
+                          <div key={idx} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-[#4A3000]'}`}>
+                                • {protocol.name}
+                              </span>
+                              <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-[#6B4F0F]'}`}>
+                                ({protocol.type})
+                              </span>
+                            </div>
+                            <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-green-700'}`}>
+                              {protocol.apy}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Allocation */}
+                  {strategy.allocation && Object.keys(strategy.allocation).length > 0 && (
+                    <div className={`mb-3 p-3 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-white/60'}`}>
+                      <p className={`text-xs font-semibold mb-2 ${isSelected ? 'text-white/90' : 'text-[#4A3000]'}`}>
+                        💰 Allocation:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(strategy.allocation).map(([key, value]) => (
+                          <div key={key} className={`px-2 py-1 rounded ${isSelected ? 'bg-white/20' : 'bg-white/80'}`}>
+                            <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-[#4A3000]'}`}>
+                              {key.charAt(0).toUpperCase() + key.slice(1)}: <strong>{value}%</strong>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suggested Tokens */}
+                  {strategy.suggestedTokens && strategy.suggestedTokens.length > 0 && (
+                    <div className={`mb-3 p-3 rounded-lg ${isSelected ? 'bg-white/10' : 'bg-white/60'}`}>
+                      <p className={`text-xs font-semibold mb-2 ${isSelected ? 'text-white/90' : 'text-[#4A3000]'}`}>
+                        🪙 Tokens:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {strategy.suggestedTokens.map((token, idx) => (
+                          <span
+                            key={idx}
+                            className={`px-2 py-1 rounded-full text-xs font-bold ${isSelected ? 'bg-white/30 text-white' : 'bg-[#FFB347]/30 text-[#4A3000]'
+                              }`}
+                          >
+                            {token}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Description/Reasoning */}
+                  <p className={`text-xs leading-relaxed ${isSelected ? 'text-white/90' : 'text-[#6B4F0F]'}`}>
+                    {strategy.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCurrentStep(2)}
+              className="flex-1 py-2.5 bg-[#8B6914]/30 text-[#4A3000] font-bold rounded-lg border-2 border-[#8B6914]/50 hover:bg-[#8B6914]/40 transition-all text-sm"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => setCurrentStep(4)}
+              disabled={selectedStrategy === null}
+              className="flex-1 py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              Next: Review
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Review */}
+      {currentStep === 4 && (
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#FFB347] to-[#E89530] rounded-xl flex items-center justify-center shadow-lg">
+              <HiCheckCircle className="w-5 h-5 text-[#4A3000]" />
+            </div>
+            <div>
+              <h3 className="text-[#4A3000] font-bold text-lg">Review & Confirm</h3>
+              <p className="text-[#6B4F0F] text-xs">Double check your room settings</p>
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 border-2 border-red-300 rounded-xl p-3 flex items-start gap-3">
+              <HiExclamationCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <p className="text-red-800 text-sm font-medium flex-1">{error}</p>
+            </div>
+          )}
+
+          {/* Room Details Card */}
+          <div className="bg-gradient-to-br from-[#E8D5A8] to-[#D4A84B]/30 rounded-xl p-4 border-2 border-[#D4A84B]/50 shadow-lg">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b-2 border-dashed border-[#8B6914]/30">
+                <span className="text-[#6B4F0F] font-medium flex items-center gap-2">
+                  <HiHome className="w-5 h-5 text-[#8B6914]" /> Room Name
+                </span>
+                <span className="font-bold text-[#4A3000] text-lg">{roomName}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
+                  <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCalendar className="w-4 h-4" /> Frequency</span>
+                  <span className="font-bold text-[#4A3000] text-lg capitalize">{depositFrequency}</span>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
+                  <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCurrencyDollar className="w-4 h-4" /> Deposit Amount</span>
+                  <span className="font-bold text-[#4A3000] text-lg">${depositAmount}</span>
+                </div>
+              </div>
+
+              <div className="bg-white/60 rounded-xl p-3 border-2 border-[#8B6914]/20">
+                <span className="text-[#6B4F0F] text-xs font-semibold block mb-1 flex items-center gap-1"><HiCalendar className="w-4 h-4" /> End Date</span>
+                <span className="font-bold text-[#4A3000] text-lg">{endDate ? new Date(endDate).toLocaleDateString() : "N/A"}</span>
+              </div>
+
+              {(() => {
+                const endDateMs = new Date(endDate).getTime();
+                const startDateMs = Date.now();
+                const periodLengthMs = depositFrequency === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+                const totalPeriods = Math.max(1, Math.ceil((endDateMs - startDateMs) / periodLengthMs));
+                const totalGoal = Number(depositAmount) * totalPeriods;
+                return (
+                  <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-3 border-2 border-green-300">
+                    <span className="text-green-800 text-xs font-semibold block mb-1 flex items-center gap-1"><FaBullseye className="w-4 h-4" /> Total Goal ({totalPeriods} {depositFrequency === "daily" ? "days" : "weeks"})</span>
+                    <span className="font-bold text-green-700 text-xl">${totalGoal}</span>
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center justify-between py-2 border-b-2 border-dashed border-[#8B6914]/30">
+                <span className="text-[#6B4F0F] font-medium">Strategy</span>
+                <span className="font-bold text-[#4A3000] bg-[#FFB347]/30 px-3 py-1.5 rounded-lg text-sm">
+                  {strategies.find(s => s.id === selectedStrategy)?.name || "N/A"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-b-2 border-dashed border-[#8B6914]/30">
+                <span className="text-[#6B4F0F] font-medium">Room Type</span>
+                <span className="font-bold text-[#4A3000] flex items-center gap-2">
+                  {isPrivate ? <><HiLockClosed className="w-4 h-4" /> Private</> : <><HiGlobeAlt className="w-4 h-4" /> Public</>}
+                </span>
+              </div>
+
+              {isTestMode && (
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-[#6B4F0F] font-medium">Mode</span>
+                  <span className="font-bold text-[#E89530] bg-[#FF8C00]/20 px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm">
+                    <HiBeaker className="w-4 h-4" /> Test Mode
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Important Notice */}
+          <div className="bg-gradient-to-br from-[#FFB347]/20 to-[#E89530]/20 border-2 border-[#FFB347]/60 rounded-xl p-3">
+            <p className="font-bold text-[#4A3000] mb-2 flex items-center gap-2 text-sm">
+              <FaInfoCircle className="w-4 h-4 text-[#E89530]" /> Important Information
+            </p>
+            <ul className="text-[#4A3000] text-xs space-y-1.5">
+              <li className="flex items-start gap-2">
+                <RiShieldCheckFill className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
+                <span>Strategy cannot be changed once the room starts</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <FaCalendarCheck className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
+                <span>Deposits must be made {depositFrequency} to stay eligible</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <FaTrophy className="w-4 h-4 text-[#8B6914] flex-shrink-0 mt-0.5" />
+                <span>Rewards distributed at the end based on consistency</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCurrentStep(3)}
+              disabled={createLoading}
+              className="flex-1 py-2.5 bg-[#8B6914]/30 text-[#4A3000] font-bold rounded-lg border-2 border-[#8B6914]/50 hover:bg-[#8B6914]/40 transition-all disabled:opacity-50 text-sm"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleCreateRoom}
+              disabled={createLoading}
+              className="flex-1 py-2.5 bg-gradient-to-b from-[#FFB347] to-[#FF8C00] text-[#4A3000] font-bold rounded-lg border-2 border-[#D4A84B] shadow-lg hover:from-[#FFC967] hover:to-[#FFA030] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              {createLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <LottieSpinner size={24} />
+                  Creating...
+                </span>
+              ) : "Create Room"}
+            </button>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

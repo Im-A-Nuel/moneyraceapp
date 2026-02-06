@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { USDC_DECIMALS } from './constants';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -221,9 +222,6 @@ export const convertCreateRoomData = (formData: {
   const startTimeMs = Date.now() - 5000; // Start 5 seconds ago to ensure room is immediately joinable
   const periodLengthMs = 7 * 24 * 60 * 60 * 1000; // 1 week in milliseconds
 
-  // USDC has 6 decimals, so multiply by 1_000_000
-  const USDC_DECIMALS = 1_000_000;
-
   return {
     totalPeriods: formData.duration,
     depositAmount: formData.weeklyTarget * USDC_DECIMALS, // Convert to USDC smallest unit
@@ -245,9 +243,6 @@ export const convertCreateRoomDataTestMode = (formData: {
 
   // TEST MODE: 1 minute per period instead of 1 week
   const periodLengthMs = 60 * 1000; // 1 minute = 60000ms
-
-  // USDC has 6 decimals, so multiply by 1_000_000
-  const USDC_DECIMALS = 1_000_000;
 
   return {
     totalPeriods: formData.duration,

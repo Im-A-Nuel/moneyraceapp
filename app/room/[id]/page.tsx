@@ -7,7 +7,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { roomAPI, usdcAPI, playerAPI, executeSponsoredTransaction, getSponsorAddress } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { getCoinsForAmount } from "@/lib/sui-utils";
-import { DEFAULT_COIN_TYPE, MIN_BALANCE_USDC, SUI_CLOCK_ID } from "@/lib/constants";
+import { DEFAULT_COIN_TYPE, MIN_BALANCE_USDC, SUI_CLOCK_ID, USDC_DECIMALS } from "@/lib/constants";
+import { getTimeAgo, formatCountdown, getApyFromStrategy } from "@/lib/helpers";
 import { buildJoinRoomTx, buildDepositTx, buildClaimTx } from "@/lib/tx-builder";
 import { buildSponsoredTx } from "@/lib/zklogin-tx";
 import { loadKeypair } from "@/lib/keypair";
@@ -19,45 +20,6 @@ import { HiBeaker, HiBan, HiPlay, HiOutlineClipboardCopy } from "react-icons/hi"
 import { FaUsers, FaPiggyBank, FaTrophy, FaWallet, FaCoins, FaCheckCircle, FaUserPlus, FaGift, FaChartLine, FaBolt, FaDoorOpen, FaMedal } from "react-icons/fa";
 import { RiCoinsFill, RiVipCrownFill, RiTimeFill, RiHistoryFill, RiMedal2Fill, RiMedal2Line } from "react-icons/ri";
 
-// Helper function to format time ago
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  if (diffMins > 0) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  return 'Just now';
-}
-
-// Helper function to format countdown time
-function formatCountdown(seconds: number): string {
-  if (seconds <= 0) return 'Now!';
-
-  const days = Math.floor(seconds / (24 * 60 * 60));
-  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
-  const mins = Math.floor((seconds % (60 * 60)) / 60);
-  const secs = seconds % 60;
-
-  if (days > 0) return `${days}d ${hours}h ${mins}m`;
-  if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
-  if (mins > 0) return `${mins}m ${secs}s`;
-  return `${secs}s`;
-}
-
-// Helper function to get APY based on strategy
-function getApyFromStrategy(strategy: string): number {
-  switch (strategy) {
-    case 'Aggressive': return 0.15;
-    case 'Growth': return 0.08;
-    case 'Stable':
-    default: return 0.04;
-  }
-}
 
 // Live Yield Display Component
 function LiveYieldDisplay({ totalPool, strategy, startTime, realizedYield, storageKey }: {
@@ -215,7 +177,7 @@ export default function RoomDetail() {
   // Periodic refresh to sync yield with backend database (every 30 seconds)
   useEffect(() => {
     if (!roomId || !roomData?.status) return;
-    
+
     // Only sync when room is active
     if (roomData?.status !== 'active') return;
 
@@ -313,7 +275,7 @@ export default function RoomDetail() {
       // Count deposits (including join as first deposit) per participant
       const depositCounts: Record<string, number> = {};
       const totalAmounts: Record<string, number> = {};
-      const USDC_DECIMALS = 1_000_000;
+      // Using USDC_DECIMALS from constants
 
       historyData.forEach((tx: any) => {
         const addr = tx.player?.toLowerCase();
@@ -427,7 +389,7 @@ export default function RoomDetail() {
         console.log("Parsed room status:", roomStatus);
 
         // USDC has 6 decimals
-        const USDC_DECIMALS = 1_000_000;
+        // Using USDC_DECIMALS from constants
         const rawDepositAmount = parseInt(blockchainData.deposit_amount) || 10;
 
         // Get period timing info
@@ -491,14 +453,14 @@ export default function RoomDetail() {
   // Helper function to get stable start time for live yield (persisted in localStorage)
   const getStableStartTime = (roomIdParam: string): number => {
     if (typeof window === 'undefined') return Date.now();
-    
+
     const storageKey = `roomStartTime_${roomIdParam}`;
     const stored = localStorage.getItem(storageKey);
-    
+
     if (stored) {
       return parseInt(stored, 10);
     }
-    
+
     // First visit - create stable start time (now) and persist it
     const newStartTime = Date.now();
     localStorage.setItem(storageKey, newStartTime.toString());
@@ -559,8 +521,8 @@ export default function RoomDetail() {
       });
 
       if (!coinResult.canMeetAmount || !coinResult.primaryCoin) {
-        const weeklyTarget = roomData?.deposit_amount ? Number(roomData.deposit_amount) / 1_000_000 : 10;
-        const totalUsdc = Number(coinResult.totalBalance) / 1_000_000;
+        const weeklyTarget = roomData?.deposit_amount ? Number(roomData.deposit_amount) / USDC_DECIMALS : 10;
+        const totalUsdc = Number(coinResult.totalBalance) / USDC_DECIMALS;
         setError(`Insufficient USDC balance. Need $${weeklyTarget} but only have $${totalUsdc.toFixed(2)} total.`);
         setLoading(false);
         return;
@@ -767,8 +729,8 @@ export default function RoomDetail() {
       });
 
       if (!coinResult.canMeetAmount || !coinResult.primaryCoin) {
-        const weeklyTarget = depositAmountValue / 1_000_000;
-        const totalUsdc = Number(coinResult.totalBalance) / 1_000_000;
+        const weeklyTarget = depositAmountValue / USDC_DECIMALS;
+        const totalUsdc = Number(coinResult.totalBalance) / USDC_DECIMALS;
         setError(`Insufficient USDC balance. Need $${weeklyTarget} but only have $${totalUsdc.toFixed(2)} total.`);
         setLoading(false);
         return;
@@ -1666,7 +1628,6 @@ export default function RoomDetail() {
                 <div className="space-y-3">
                   {history.length > 0 ? (
                     history.map((tx, index) => {
-                      const USDC_DECIMALS = 1_000_000;
                       const amount = (tx.amount / USDC_DECIMALS).toFixed(2);
                       const date = new Date(tx.timestamp);
                       const timeAgo = getTimeAgo(date);

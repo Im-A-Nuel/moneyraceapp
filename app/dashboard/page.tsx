@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { roomAPI } from "@/lib/api";
+import { USDC_DECIMALS } from "@/lib/constants";
 import { useAuthStore } from "@/store/auth.store";
 import DashboardLayout from "@/components/DashboardLayout";
 import { LottieLoading } from "@/components/ui/LottieLoading";
@@ -164,7 +165,7 @@ export default function Dashboard() {
             name: room.name || `Savings Room`,
             roomAddress: room.roomId,
             duration: totalPeriods,
-            weeklyTarget: room.depositAmount / 1_000_000 || 0, // For Active Rooms, backend does NOT divide
+            weeklyTarget: room.depositAmount / USDC_DECIMALS || 0, // For Active Rooms, backend does NOT divide
             currentPeriod: displayPeriod,
             totalPeriods: totalPeriods,
             participants: 0,
