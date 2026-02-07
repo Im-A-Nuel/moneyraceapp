@@ -6,9 +6,15 @@ Welcome to **Money Race**, an innovative decentralized group savings protocol on
 
 ## What is Money Race?
 
-Money Race is a **gamified group savings dApp** where users join savings rooms, commit to weekly deposits, and compete to stay consistent. AI helps users choose their investment strategy, while consistent savers earn rewards from those who miss their targets.
+Money Race is a **gamified group savings dApp** where users join savings rooms, commit to periodic deposits (daily or weekly), and earn DeFi yield based on consistency. **EigenAI** helps users choose optimal investment strategies, while all transactions are **100% gasless**.
 
-> **Core Concept:** *Save Together. Decide Your Strategy. Earn Fairly.*
+> **Core Concept:** *Save Together. Stay Consistent. Earn Fairly.*
+
+**Key Highlights:**
+- 🔐 **Principal Protected** — Your deposits are always safe
+- 🆓 **Gasless** — Zero transaction fees for users
+- 🤖 **AI-Powered** — EigenAI strategy recommendations
+- 💰 **Real Yield** — From Sui DeFi protocols (mainnet)
 
 ---
 
@@ -30,10 +36,12 @@ Money Race is a **gamified group savings dApp** where users join savings rooms, 
 
 ### For Users
 
-1. Connect your Sui wallet or Google account
-2. Browse available savings rooms
-3. Join a room and set your strategy
-4. Make weekly deposits to stay in the race
+1. **Connect** — Sui wallet or Google account (zkLogin)
+2. **Browse** — Explore available savings rooms
+3. **Get AI Recommendation** — Let EigenAI suggest your strategy
+4. **Join & Deposit** — Start with your first deposit (gasless!)
+5. **Stay Consistent** — Make periodic deposits (daily/weekly)
+6. **Earn Rewards** — Claim principal + proportional yield
 
 ### For Developers
 
@@ -57,10 +65,18 @@ Money Race is a **gamified group savings dApp** where users join savings rooms, 
 
 | Metric | Value |
 |--------|-------|
-| Blockchain | Sui |
+| Blockchain | Sui (Testnet) |
 | Token | USDC |
 | Smart Contract Language | Move |
-| AI Integration | ✅ |
+| AI Engine | EigenAI (deepseek-v31-terminus) |
+| Gas Fees | Zero (sponsored) |
+| Principal Protection | 100% |
+
+---
+
+## Current Status
+
+> **Testnet Deployment** — Currently running on Sui testnet with simulated yield. Mainnet deployment will integrate real DeFi protocols (Scallop, Navi, Cetus, Turbos, Kriya, Aftermath) for genuine yield generation.
 
 ---
 

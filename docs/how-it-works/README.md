@@ -1,6 +1,6 @@
 # How It Works
 
-This section explains the complete user journey from signing up to earning rewards.
+Complete user journey from sign-up to earning rewards on Money Race.
 
 ---
 
@@ -8,14 +8,14 @@ This section explains the complete user journey from signing up to earning rewar
 
 ### Step 1: Connect Your Account
 
-You have two options to get started:
+Two options to get started — **both gasless**:
 
 ```
 ┌─────────────────────────────────────────┐
 │  Welcome to Money Race                   │
 │                                         │
 │  ┌─────────────────────────────────┐    │
-│  │  Sign in with Google            │    │
+│  │  Sign in with Google (zkLogin)  │    │
 │  └─────────────────────────────────┘    │
 │                                         │
 │              ─── OR ───                 │
@@ -27,14 +27,16 @@ You have two options to get started:
 ```
 
 **Google Login (zkLogin):**
-- Uses Sui's zkLogin technology
-- No wallet needed to start
+- No wallet needed — one-click sign-in
 - Automatic keypair generation
+- Perfect for Web2 users
 
 **Wallet Connect:**
-- Direct Sui wallet integration
+- Direct Sui wallet integration (dapp-kit)
 - Full control of your keys
-- Supports popular Sui wallets
+- Supports all major Sui wallets
+
+**All transactions are gasless** — backend sponsors gas fees.
 
 ---
 
@@ -44,68 +46,79 @@ Explore available rooms on the dashboard:
 
 | Room Info | Example |
 |-----------|---------|
-| Name | "Weekend Warriors" |
-| Duration | 8 weeks |
-| Weekly Target | $50 USDC |
-| Participants | 15/20 |
-| Prize Pool | $200 |
-| Strategy | Balanced |
+| **Name** | "Daily Savers Club" |
+| **Duration** | 14 days (minimum 7 days) |
+| **Deposit Amount** | 10 USDC |
+| **Period** | Daily (or Weekly) |
+| **Participants** | 12/20 |
+| **Strategy** | Balanced (~8% APY) |
+| **Status** | OPEN |
 
 ---
 
 ### Step 3: Join a Room
 
-1. Select a room that matches your goals
-2. Review the room parameters
-3. Choose your AI-recommended strategy (or pick your own)
-4. Make your initial deposit
-5. You're in the race! 🏁
+1. Select a room matching your savings goal
+2. Review parameters (duration, amount, strategy)
+3. Get AI recommendation (optional) → EigenAI analyzes your prompt
+4. Make initial deposit (gasless!)
+5. You're in! 🏁
+
+**No gas fees** — just deposit USDC.
 
 ---
 
-### Step 4: Weekly Deposits
+### Step 4: Periodic Deposits
 
-Each week, make your deposit to stay in the race:
+Make deposits each period to stay consistent:
 
 ```
-Week 1: ✅ $50 deposited
-Week 2: ✅ $50 deposited
-Week 3: ⏳ Pending (2 days left)
-Week 4: 🔒 Locked
+Period 1: ✅ 10 USDC deposited
+Period 2: ✅ 10 USDC deposited
+Period 3: ⏳ Current period (5 days left)
+Period 4: 🔒 Future period
 ```
 
-**Deposit Window:** You have 7 days each week to make your deposit.
+**Period Length:** Daily or Weekly (set when room is created)
 
-**Grace Period:** If you miss the deadline, a penalty applies.
+**Important:**
+- Miss a deposit → You get less yield share (NOT penalized on principal)
+- Your principal is always safe
+- Consistency = higher reward share
 
 ---
 
 ### Step 5: Track Your Progress
 
-Monitor your performance on the dashboard:
+Monitor performance on the dashboard:
 
-- **Savings Progress** – Total saved vs target
-- **Race Position** – Your rank in the room
-- **Streak Counter** – Consecutive weeks saved
-- **Projected Rewards** – Estimated earnings
+- **Total Deposited** — How much you've saved
+- **Consistency** — Deposits made / Total periods
+- **Room Status** — OPEN / ACTIVE / FINISHED
+- **Your Share** — Estimated % of yield pool
+- **Yield Projection** — Expected rewards based on current rate
 
 ---
 
-### Step 6: Earn Rewards 🏆
+### Step 6: Claim Rewards 🏆
 
-At the end of the challenge:
+When room is FINISHED, claim your payout:
 
 ```
-Challenge Complete!
+Room Complete!
 
 Your Stats:
-├── Total Saved: $400
-├── Weeks Completed: 8/8
-├── Final Position: 2nd
-└── Rewards Earned: $45 USDC
+├── Periods Completed: 5/5 (100%)
+├── Total Deposited: 500 USDC
+├── Your Share: 45.45% of yield pool
+└── Yield Earned: 4.5 USDC
 
-Total Payout: $445 USDC
+Total Payout: 504.5 USDC
+  ├── Principal: 500 USDC (100% returned ✅)
+  └── Yield: 4.5 USDC (from DeFi protocols)
 ```
+
+**Claim is gasless** — funds sent to your wallet instantly.
 
 ---
 
@@ -114,30 +127,68 @@ Total Payout: $445 USDC
 ```mermaid
 graph TD
     A[Connect Account] --> B[Browse Rooms]
-    B --> C[Join Room]
-    C --> D[Make Initial Deposit]
-    D --> E{Weekly Check}
-    E -->|Deposit Made| F[Stay in Race]
-    E -->|Missed| G[Penalty Applied]
-    F --> H{Challenge End?}
+    B --> C[Join Room - Initial Deposit]
+    C --> D[Room Starts - Status: ACTIVE]
+    D --> E{Periodic Check}
+    E -->|Deposit Made| F[Consistency +1]
+    E -->|Missed| G[Skip Period - Less Yield Share]
+    F --> H{Room Finished?}
     G --> H
     H -->|No| E
-    H -->|Yes| I[Rewards Distributed]
-    I --> J[Withdraw Funds]
+    H -->|Yes| I[Admin Finalizes Room]
+    I --> J[Calculate Yield Shares]
+    J --> K[Claim Payout - Principal + Yield]
 ```
+
+---
+
+## How Yield is Distributed
+
+**Proportional to consistency:**
+
+```
+Your Yield Share = (your_deposits / total_deposits) × total_yield
+```
+
+**Example:** Room with 11 total deposits, 10 USDC yield
+- Alice (5 deposits) → 5/11 × 10 = 4.545 USDC
+- Bob (4 deposits) → 4/11 × 10 = 3.636 USDC
+- Carol (2 deposits) → 2/11 × 10 = 1.818 USDC
+
+**Everyone gets principal back 100%.** Yield is the bonus for consistency.
 
 ---
 
 ## Technical Flow
 
-For developers, here's the technical flow:
+For developers:
 
-1. **Authentication** → zkLogin or wallet signature
-2. **Room Join** → Smart contract call with deposit
-3. **Weekly Deposit** → Transfer USDC to contract
-4. **Progress Update** → Contract state update
-5. **Reward Calculation** → On-chain logic
-6. **Distribution** → Automatic payout
+| Step | Action | Smart Contract | Gasless? |
+|------|--------|---------------|---------|
+| 1 | **Auth** | zkLogin or wallet signature | N/A |
+| 2 | **Join Room** | `join_room()` + first deposit | ✅ Yes |
+| 3 | **Periodic Deposit** | `deposit()` with USDC | ✅ Yes |
+| 4 | **Admin Start** | `start_room()` (admin) | ✅ Yes |
+| 5 | **Admin Finalize** | `finalize_room()` (admin) | ✅ Yes |
+| 6 | **Claim Rewards** | `claim_all()` → principal + yield | ✅ Yes |
+
+**How gasless works:**
+- User signs transaction with their key
+- Backend adds sponsor signature (multi-sig)
+- Sponsor pays gas in SUI
+- User only needs USDC
+
+---
+
+## Smart Contract Events
+
+All actions emit events for transparency:
+
+- `RoomCreated` → New room initialized
+- `PlayerJoined` → User joins with first deposit
+- `DepositMade` → Periodic deposit recorded
+- `YieldAccrued` → Yield calculated and moved to reward pool
+- `RewardsClaimed` → User withdraws principal + yield
 
 ---
 

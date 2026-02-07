@@ -31,14 +31,26 @@ Money Race aims to become the leading gamified savings protocol on Sui blockchai
 
 ---
 
-### 📈 Phase 3: Growth (Q3 2026) — Planned
+### 📈 Phase 3: Growth & Monetization (Q3 2026) — Planned
 
 - [ ] Mobile app (PWA)
 - [ ] NFT achievement badges
-- [ ] Enhanced AI with market integration
+- [ ] **AI Model Fine-tuning** — Train on Sui DeFi datasets
+  - Historical protocol APY data (Scallop, Navi, Cetus)
+  - User savings behavior patterns
+  - Market condition correlations
+  - Yield optimization models
+- [ ] **Freemium Tier System**
+  - Free Tier: 3 rooms max, 3 AI recommendations/month
+  - Premium Tier: Unlimited rooms, unlimited AI, priority features
+  - Subscription payments in USDC (monthly/yearly)
 - [ ] Room discovery algorithm
 - [ ] Social features (friends, invites)
 - [ ] Referral program
+- [ ] **Mini-Games Launch**
+  - Savings Slots (no-loss lottery)
+  - Streak challenges
+  - Leaderboard tournaments
 
 ---
 

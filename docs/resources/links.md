@@ -42,13 +42,16 @@
 
 ---
 
-## Hackathon
+## Smart Contracts
 
-| Info | Details |
-|------|---------|
-| Event | SUI Hackathon 2026 |
-| Track | DeFi |
-| Team | Money Race Labs |
+| Resource | Link |
+|----------|------|
+| **Package ID (Testnet)** | `0x0e5bb307c15081e2159f2a3a4d4aa509bd0ed1cda6338accf4189e734c5f122c` |
+| **View on Sui Explorer** | [Testnet Package](https://suiexplorer.com/object/0x0e5bb307c15081e2159f2a3a4d4aa509bd0ed1cda6338accf4189e734c5f122c?network=testnet) |
+| **Module Name** | `money_race_v2` |
+| **Source Code** | [Coming Soon] |
+| **Admin Cap** | `0xf2c1b1af23b32aab0ea2efa2c2483adf90321c19e77f204199e0ca5211a1887b` |
+| **USDC Faucet** | `0x9baa4f323d403060c13bfe280b0fef3f95a4f7c0bc23fb393660b7ef946e4cfe` |
 
 ---
 
