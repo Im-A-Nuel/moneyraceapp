@@ -23,7 +23,6 @@
 
 ## Developers
 
-* [Overview](developers/README.md)
 * [Smart Contracts](developers/smart-contracts.md)
 * [Deployments](developers/deployments.md)
 
