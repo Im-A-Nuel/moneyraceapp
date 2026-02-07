@@ -10,6 +10,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "MoneyRace - AI-Powered Saving Game",
   description: "Save together, earn rewards, powered by Sui blockchain",
+  icons: {
+    icon: "/logo_money_race_coin.png",
+    shortcut: "/logo_money_race_coin.png",
+    apple: "/logo_money_race_coin.png",
+  },
 };
 
 export default function RootLayout({
