@@ -39,9 +39,10 @@ export const MIN_BALANCE_SUI = 1_000_000n; // 0.001 SUI
 // =============================================================================
 
 // APY values for each strategy (in percentage)
+// Matches smart contract: Conservative=40bps, Balanced=80bps, Aggressive=150bps
 export const STRATEGY_APY: Record<string, number> = {
-    conservative: 5,
-    balanced: 10,
+    conservative: 4,
+    balanced: 8,
     aggressive: 15,
 };
 
@@ -53,7 +54,7 @@ export const STRATEGY_ID_TO_NAME: Record<number, string> = {
 };
 
 // Default APY when strategy is unknown
-export const DEFAULT_STRATEGY_APY = 5;
+export const DEFAULT_STRATEGY_APY = 4;
 
 // =============================================================================
 // TIMING CONSTANTS

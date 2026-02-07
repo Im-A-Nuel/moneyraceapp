@@ -45,8 +45,8 @@ function LiveYieldDisplay({ totalPool, strategy, startTime, realizedYield, stora
     }
 
     const apy = getApyFromStrategy(strategy);
-    // Calculate per-second yield: TotalPool * APY / (365 * 24 * 60 * 60)
-    const yieldPerSecond = (totalPool * apy) / 31536000;
+    // Calculate per-second yield: TotalPool * (APY/100) / (365 * 24 * 60 * 60)
+    const yieldPerSecond = (totalPool * (apy / 100)) / 31536000;
 
     // ⭐ PURE TIME-BASED CALCULATION (Ignore blockchain reward)
     const calculateTimeBasedYield = () => {
@@ -103,6 +103,20 @@ export default function RoomDetail() {
       console.log('✅ LoginMethod updated to: wallet');
     }
   }, [currentWalletAccount, user, setUser]);
+
+  // Helper: detect actual login method by checking real wallet connection state
+  const getVerifiedLoginMethod = (): 'wallet' | 'google' => {
+    // Check if any wallet is connected (regardless of address match)
+    if (currentWalletAccount?.address) {
+      return 'wallet';
+    }
+    // No wallet, check for Google/zkLogin keypair
+    if (loadKeypair() !== null) {
+      return 'google';
+    }
+    // Fallback: trust stored loginMethod
+    return (user?.loginMethod as 'wallet' | 'google') || 'google';
+  };
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -425,7 +439,7 @@ export default function RoomDetail() {
           totalPeriods: parseInt(blockchainData.total_periods) || 12,
           totalDeposit: response.room.totalDeposit || 0, // ✓ Get from vault balance (backend)
           rewardPool: response.room.rewardPool || 0, // ✓ Get from vault balance (backend)
-          strategy: blockchainData.strategy_id === 0 ? "Stable" : blockchainData.strategy_id === 1 ? "Growth" : "Aggressive",
+          strategy: blockchainData.strategy_id == 1 ? "conservative" : blockchainData.strategy_id == 2 ? "balanced" : "aggressive",
           status: roomStatus,
           participants: [], // TODO: Query from blockchain
           isPrivate: blockchainData.is_private || false,
@@ -545,31 +559,7 @@ export default function RoomDetail() {
         depositAmount: depositAmountNumber,
       });
 
-      // Auto-detect loginMethod if undefined
-      let detectedLoginMethod = user.loginMethod;
-      if (!detectedLoginMethod) {
-        // Check if ephemeral keypair exists (Google login) or wallet connected
-        const hasKeypair = loadKeypair() !== null;
-        const hasWallet = currentWalletAccount?.address === user.address;
-
-        if (hasWallet) {
-          detectedLoginMethod = 'wallet';
-          console.log('🔧 Auto-detected loginMethod: wallet (wallet connected)');
-        } else if (hasKeypair) {
-          detectedLoginMethod = 'google';
-          console.log('🔧 Auto-detected loginMethod: google (ephemeral keypair found)');
-        } else {
-          detectedLoginMethod = 'google'; // Default fallback
-          console.log('⚠️ Could not detect loginMethod, defaulting to google');
-        }
-
-        // Update user object in store
-        setUser({
-          ...user,
-          loginMethod: detectedLoginMethod,
-        });
-      }
-
+      const detectedLoginMethod = getVerifiedLoginMethod();
       console.log("Building and signing transaction...");
       console.log("Login method:", detectedLoginMethod);
 
@@ -786,16 +776,7 @@ export default function RoomDetail() {
         depositAmount: depositAmountValue,
       });
 
-      // Auto-detect loginMethod if undefined
-      let detectedLoginMethod = user.loginMethod;
-      if (!detectedLoginMethod) {
-        const hasKeypair = loadKeypair() !== null;
-        const hasWallet = currentWalletAccount?.address === user.address;
-        detectedLoginMethod = hasWallet ? 'wallet' : hasKeypair ? 'google' : 'google';
-        console.log('🔧 Auto-detected loginMethod:', detectedLoginMethod);
-        setUser({ ...user, loginMethod: detectedLoginMethod });
-      }
-
+      const detectedLoginMethod = getVerifiedLoginMethod();
       console.log("Building and signing deposit transaction...");
       const { txBytes, userSignature, executeDirectly } = await buildSponsoredTx(
         tx,
@@ -818,7 +799,9 @@ export default function RoomDetail() {
 
       if (response.success) {
         toast.success("Deposit Successful!", "Your deposit has been recorded.");
-        window.location.reload(); // Refresh page to update all data
+        // Refresh data without full page reload to preserve wallet connection
+        setHasDepositedThisPeriod(true);
+        await Promise.all([fetchRoomData(), fetchHistory(), fetchParticipants(), fetchUSDCBalance()]);
       } else {
         setError(response.error || "Failed to deposit");
       }
@@ -884,15 +867,7 @@ export default function RoomDetail() {
         playerPositionId: playerPositionId,
       });
 
-      // Auto-detect loginMethod if undefined
-      let detectedLoginMethod = user.loginMethod;
-      if (!detectedLoginMethod) {
-        const hasKeypair = loadKeypair() !== null;
-        const hasWallet = currentWalletAccount?.address === user.address;
-        detectedLoginMethod = hasWallet ? 'wallet' : hasKeypair ? 'google' : 'google';
-        console.log('🔧 Auto-detected loginMethod:', detectedLoginMethod);
-        setUser({ ...user, loginMethod: detectedLoginMethod });
-      }
+      const detectedLoginMethod = getVerifiedLoginMethod();
 
       // 3. Build sponsored transaction with user as sender
       const { txBytes, userSignature, executeDirectly } = await buildSponsoredTx(
@@ -920,11 +895,9 @@ export default function RoomDetail() {
         console.log("✅ Claim successful! Digest:", response.digest || txBytes);
         setHasClaimed(true);
         toast.success("Congratulations! 🎉", "Rewards claimed successfully!");
-
-        // Wait a bit before refreshing to ensure transaction is indexed
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        // Refresh data without full page reload to preserve wallet connection
+        await Promise.all([fetchRoomData(), fetchHistory(), fetchUSDCBalance()]);
+        setLoading(false);
       } else {
         const errorMsg = response.error || "Failed to claim rewards";
         console.error("❌ Claim failed:", errorMsg);
@@ -959,11 +932,10 @@ export default function RoomDetail() {
       const response = await roomAPI.finalizeRoom(roomId, roomData.vaultId);
 
       if (response.success) {
-        toast.success("Room Finalized!", "Page will refresh shortly...");
-        // Refresh the page to get updated room status
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+        toast.success("Room Finalized!", "Room status updated.");
+        // Refresh data without full page reload to preserve wallet connection
+        await Promise.all([fetchRoomData(), fetchHistory(), fetchParticipants()]);
+        setLoading(false);
       } else {
         setError(response.error || "Failed to finalize room");
         setLoading(false);
@@ -1177,7 +1149,7 @@ export default function RoomDetail() {
                 <span>${(room.rewardPool || 0).toFixed(2)}</span>
               )}
             </div>
-            <div className="text-xs text-amber-200/70 mt-1">Accruing at {getApyFromStrategy(room.strategy) * 100}% APY</div>
+            <div className="text-xs text-amber-200/70 mt-1">Accruing at {getApyFromStrategy(room.strategy)}% APY</div>
           </div>
 
           {/* Participants Card */}
