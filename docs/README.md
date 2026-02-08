@@ -2,6 +2,8 @@
 
 Welcome to **Money Race**, an innovative decentralized group savings protocol on **Sui blockchain** that gamifies financial discipline.
 
+<img src="introduction/landingpage.png" alt="Anto the Ant - Money Race Mascot"/>
+
 ---
 
 ## What is Money Race?
@@ -55,9 +57,7 @@ Money Race is a **gamified group savings dApp** where users join savings rooms, 
 ## 🔗 Important Links
 
 - **Demo App**: [Coming Soon]
-- **GitHub**: [Coming Soon]
-- **Twitter/X**: [Coming Soon]
-- **Discord**: [Coming Soon]
+- **Pitchdeck**: [Coming Soon]
 
 ---
 
@@ -79,7 +79,5 @@ Money Race is a **gamified group savings dApp** where users join savings rooms, 
 > **Testnet Deployment** — Currently running on Sui testnet with simulated yield. Mainnet deployment will integrate real DeFi protocols (Scallop, Navi, Cetus, Turbos, Kriya, Aftermath) for genuine yield generation.
 
 ---
-
-> **Built for SUI Hackathon 2026** 🏆
 
 Last updated: February 2026

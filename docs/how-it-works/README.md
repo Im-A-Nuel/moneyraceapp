@@ -10,21 +10,7 @@ Complete user journey from sign-up to earning rewards on Money Race.
 
 Two options to get started — **both gasless**:
 
-```
-┌─────────────────────────────────────────┐
-│  Welcome to Money Race                   │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │  Sign in with Google (zkLogin)  │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│              ─── OR ───                 │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │  Connect Sui Wallet             │    │
-│  └─────────────────────────────────┘    │
-└─────────────────────────────────────────┘
-```
+<img src="loginway.png" alt="connect account to MoneyRace" width="50%"/>
 
 **Google Login (zkLogin):**
 - No wallet needed — one-click sign-in
@@ -124,21 +110,7 @@ Total Payout: 504.5 USDC
 
 ## 📊 Flow Diagram
 
-```mermaid
-graph TD
-    A[Connect Account] --> B[Browse Rooms]
-    B --> C[Join Room - Initial Deposit]
-    C --> D[Room Starts - Status: ACTIVE]
-    D --> E{Periodic Check}
-    E -->|Deposit Made| F[Consistency +1]
-    E -->|Missed| G[Skip Period - Less Yield Share]
-    F --> H{Room Finished?}
-    G --> H
-    H -->|No| E
-    H -->|Yes| I[Admin Finalizes Room]
-    I --> J[Calculate Yield Shares]
-    J --> K[Claim Payout - Principal + Yield]
-```
+<img src="flowdiagram.png" alt="Money Race - How It Works Flowchart" width="50%"/>
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## ❌ The Problem
 
-### 0. People Prefer Saving Over High-Risk Investing (Global Reality)
+### 1. People Prefer Saving Over High-Risk Investing (Global Reality)
 
 > **Globally, the majority of people prefer saving and low-risk financial instruments over high-risk investments.**
 
@@ -23,7 +23,7 @@ Money Race is built exactly for this gap.
 
 ---
 
-### 1. Lack of Savings Discipline
+### 2. Lack of Savings Discipline
 
 > **~70% of people struggle to maintain consistent savings habits.**
 
@@ -36,7 +36,7 @@ People start with good intentions but quickly lose momentum.
 
 ---
 
-### 2. No Social Support
+### 3. No Social Support
 
 Saving money is typically a **solitary activity**.
 
@@ -49,7 +49,7 @@ People quit silently.
 
 ---
 
-### 3. Boring Experience
+### 4. Boring Experience
 
 Traditional savings products are:
 - Passive
@@ -60,7 +60,7 @@ No progress feedback, no excitement, no sense of achievement.
 
 ---
 
-### 4. Information Overload & Risk Aversion
+### 5. Information Overload & Risk Aversion
 
 Despite thousands of investment options:
 - Most users **do not want to actively trade**
@@ -72,7 +72,7 @@ Users either do nothing — or take risks they don't fully understand.
 
 ---
 
-### 5. Trust Issues in DeFi
+### 6. Trust Issues in DeFi
 
 Many DeFi savings protocols are:
 - Too complex for beginners
