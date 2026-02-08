@@ -109,7 +109,77 @@ export default function Home() {
             <div className="absolute top-20 left-10 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl animate-pulse" />
             <div className="absolute bottom-20 right-10 w-80 h-80 bg-yellow-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
           </div>
-          <div className="max-w-7xl mx-auto">
+
+          {/* Crack pattern - left side fading to smooth right */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 1200 700">
+              <defs>
+                <linearGradient id="crack-fade" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="white" stopOpacity="1" />
+                  <stop offset="30%" stopColor="white" stopOpacity="0.7" />
+                  <stop offset="50%" stopColor="white" stopOpacity="0.2" />
+                  <stop offset="65%" stopColor="white" stopOpacity="0" />
+                </linearGradient>
+                <mask id="crack-mask">
+                  <rect width="100%" height="100%" fill="url(#crack-fade)" />
+                </mask>
+              </defs>
+              <g mask="url(#crack-mask)" stroke="rgba(255,210,140,0.4)" fill="none">
+                {/* Main crack veins */}
+                <path d="M0,100 L60,120 L100,105 L160,135 L210,115 L280,145 L340,125 L420,155 L500,135 L560,160" strokeWidth="1.2" />
+                <path d="M0,230 L50,250 L100,235 L170,265 L230,245 L300,275 L370,255 L450,280 L520,260" strokeWidth="1" />
+                <path d="M0,370 L70,390 L120,375 L180,400 L240,380 L320,410 L380,390 L460,415" strokeWidth="1.2" />
+                <path d="M0,500 L55,520 L110,505 L175,530 L240,510 L310,540 L380,520 L440,545" strokeWidth="1" />
+                <path d="M0,620 L65,640 L130,625 L190,650 L260,630 L330,655 L400,635" strokeWidth="0.8" />
+                {/* Secondary cracks */}
+                <path d="M30,50 L80,70 L120,55 L180,80 L250,60 L310,85 L380,65" strokeWidth="0.7" />
+                <path d="M10,170 L60,185 L110,170 L170,195 L230,175 L290,200" strokeWidth="0.8" />
+                <path d="M20,300 L75,315 L130,300 L190,325 L250,305 L320,330" strokeWidth="0.7" />
+                <path d="M0,440 L50,455 L105,440 L165,465 L225,445 L285,470" strokeWidth="0.8" />
+                <path d="M15,560 L65,575 L120,560 L180,585 L240,565 L300,590" strokeWidth="0.7" />
+                {/* Branch cracks (splitting off main lines) */}
+                <path d="M60,120 L75,155 L90,180" strokeWidth="0.8" />
+                <path d="M160,135 L175,170 L165,200" strokeWidth="0.7" />
+                <path d="M280,145 L295,175 L285,205" strokeWidth="0.6" />
+                <path d="M100,105 L115,75 L135,55" strokeWidth="0.7" />
+                <path d="M50,250 L65,280 L55,310" strokeWidth="0.8" />
+                <path d="M170,265 L185,295 L175,325" strokeWidth="0.7" />
+                <path d="M300,275 L310,300 L300,325" strokeWidth="0.6" />
+                <path d="M70,390 L85,420 L75,445" strokeWidth="0.8" />
+                <path d="M180,400 L195,430 L185,460" strokeWidth="0.7" />
+                <path d="M320,410 L330,435 L320,460" strokeWidth="0.6" />
+                <path d="M55,520 L70,550 L60,575" strokeWidth="0.7" />
+                <path d="M175,530 L190,560 L180,585" strokeWidth="0.7" />
+                {/* Micro fractures */}
+                <path d="M20,140 L40,155 L35,175" strokeWidth="0.4" opacity="0.6" />
+                <path d="M130,175 L150,190 L145,210" strokeWidth="0.4" opacity="0.6" />
+                <path d="M40,280 L55,295 L50,315" strokeWidth="0.4" opacity="0.6" />
+                <path d="M200,210 L215,225 L210,245" strokeWidth="0.4" opacity="0.5" />
+                <path d="M90,350 L105,365 L100,385" strokeWidth="0.4" opacity="0.6" />
+                <path d="M240,340 L255,355 L250,375" strokeWidth="0.4" opacity="0.5" />
+                <path d="M30,480 L45,495 L40,515" strokeWidth="0.4" opacity="0.6" />
+                <path d="M150,470 L165,485 L160,505" strokeWidth="0.4" opacity="0.5" />
+              </g>
+            </svg>
+
+            {/* Dust particles scattered along cracks */}
+            {Array.from({ length: 35 }).map((_, i) => (
+              <div
+                key={`dot-${i}`}
+                className="absolute rounded-full"
+                style={{
+                  left: `${(i * 11 + 2) % 45}%`,
+                  top: `${(i * 17 + 5) % 100}%`,
+                  width: `${1.5 + (i % 3)}px`,
+                  height: `${1.5 + (i % 3)}px`,
+                  background: `rgba(255, 210, 140, ${0.15 + (i % 4) * 0.05})`,
+                  boxShadow: `0 0 ${3 + (i % 3) * 2}px rgba(255,200,120,0.2)`,
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="max-w-7xl mx-auto relative z-10">
             <div className="grid lg:grid-cols-2 gap-16 items-center min-h-[600px]">
               {/* Left side - Coin with Mascot */}
               <div className="flex justify-center lg:justify-start order-2 lg:order-1">
