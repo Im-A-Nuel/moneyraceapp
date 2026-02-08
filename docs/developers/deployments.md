@@ -54,7 +54,7 @@ Verify contract source code:
 
 ```bash
 # Clone repository
-git clone https://github.com/[ORG]/money-race-contracts
+git clone https://github.com/MoneyRaceRepo/smartcontract
 
 # Build
 sui move build

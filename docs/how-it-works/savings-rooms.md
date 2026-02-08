@@ -223,14 +223,24 @@ Your principal share = (your_deposits / total_deposits) × total_principal
 ### Finding Rooms:
 
 **Public Rooms:**
-- Browse all available rooms on dashboard
+- Browse all available rooms on the **Active Room** tab
 - Filter by duration, deposit amount, strategy
 - Sort by participants, APY, time remaining
+- Visible to all users on the dashboard
 
 **Private Rooms:**
-- Need password or direct link
-- Perfect for friends/community groups
-- Same mechanics as public rooms
+- Private rooms are designed for users who want to **save together with people they know** — friends, family, or community groups
+- Private rooms do **NOT** appear in the **Active Room** tab, keeping them hidden from public browsing
+- To join a private room, users must search by **Room Password** or **Room ID** shared by the room creator
+- Once joined, private rooms will appear in the **My Room** tab alongside your other rooms
+- Same mechanics and yield distribution as public rooms — only the visibility differs
+
+**How to Join a Private Room:**
+1. Get the **Room Password** or **Room ID** from the room creator
+2. Use the search/join feature on the dashboard
+3. Enter the password or ID to find the room
+4. Make your first deposit to join (gasless!)
+5. The room will now be visible in your **My Room** tab
 
 ---
 

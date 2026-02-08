@@ -56,7 +56,7 @@ Money Race is a **gamified group savings dApp** where users join savings rooms, 
 
 ## 🔗 Important Links
 
-- **Link App** : 
+- **Link App** : [https://moneyraceapp-lac.vercel.app/](https://moneyraceapp-lac.vercel.app/)
 - **Demo App**: [Coming Soon]
 - **Pitchdeck**: [Coming Soon]
 -
