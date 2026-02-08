@@ -9,6 +9,7 @@
 * [Overview](introduction/overview.md)
 * [Problem & Solution](introduction/problem-and-solution.md)
 * [Key Features](introduction/key-features.md)
+* [Why Sui?](introduction/why-sui.md)
 
 ## How It Works
 

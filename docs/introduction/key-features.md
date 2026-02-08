@@ -177,4 +177,4 @@ Comprehensive dashboard to monitor your journey:
 
 ---
 
-[Next: How It Works →](../how-it-works/README.md)
+[Next: Why Sui? →](why-sui.md)
