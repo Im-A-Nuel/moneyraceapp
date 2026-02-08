@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 
 export function Footer() {
   return (
@@ -12,9 +11,9 @@ export function Footer() {
             Docs
           </a>
           <span className="text-amber-700/50">|</span>
-          <Link href="#" className="text-amber-200/80 hover:text-white text-sm transition-colors">
+          <a href="https://moneyrace.gitbook.io/moneyracedocs/resources/team" target="_blank" rel="noopener noreferrer" className="text-amber-200/80 hover:text-white text-sm transition-colors">
             About Us
-          </Link>
+          </a>
         </div>
 
         {/* Copyright */}

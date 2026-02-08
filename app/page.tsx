@@ -209,8 +209,69 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="py-24 px-6" style={{ background: 'linear-gradient(180deg, #B6771D 0%, #A06B1A 100%)' }}>
-          <div className="max-w-6xl mx-auto">
+        <section className="py-24 px-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #B6771D 0%, #A06B1A 100%)' }}>
+          {/* Stardust particles */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {Array.from({ length: 50 }).map((_, i) => {
+              const size = 2 + (i % 4) * 1.5;
+              const colors = ['#FFD700', '#FBBF24', '#FDE68A', '#FCD34D', '#FFFFFF'];
+              const color = colors[i % 5];
+              return (
+                <div
+                  key={i}
+                  className="absolute rounded-full animate-stardust"
+                  style={{
+                    left: `${(i * 23 + 7) % 100}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    background: `radial-gradient(circle, ${color} 0%, ${color}88 40%, transparent 70%)`,
+                    boxShadow: `0 0 ${6 + (i % 5) * 3}px ${color}, 0 0 ${12 + (i % 4) * 4}px ${color}66`,
+                    animationDelay: `${(i * 0.5) % 10}s`,
+                    animationDuration: `${4 + (i % 6) * 1.5}s`,
+                    opacity: 0,
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          <style jsx>{`
+            @keyframes stardust {
+              0% {
+                transform: translateY(-20px) translateX(0) scale(0);
+                opacity: 0;
+              }
+              5% {
+                opacity: 1;
+                transform: translateY(0) translateX(0) scale(1.2);
+              }
+              15% {
+                opacity: 0.9;
+                transform: translateY(10vh) translateX(10px) scale(1);
+              }
+              40% {
+                opacity: 0.7;
+                transform: translateY(35vh) translateX(-8px) scale(0.9);
+              }
+              60% {
+                opacity: 0.8;
+                transform: translateY(55vh) translateX(12px) scale(0.8);
+              }
+              80% {
+                opacity: 0.5;
+                transform: translateY(75vh) translateX(-5px) scale(0.6);
+              }
+              100% {
+                transform: translateY(100vh) translateX(8px) scale(0.2);
+                opacity: 0;
+              }
+            }
+            .animate-stardust {
+              animation: stardust linear infinite;
+            }
+          `}</style>
+
+          <div className="max-w-6xl mx-auto relative z-10">
             {/* Section Title */}
             <div className="text-center mb-12">
               <h2
@@ -233,18 +294,18 @@ export default function Home() {
             <div className="grid md:grid-cols-3 gap-8">
               <FeatureCard
                 icon={<HiLightBulb className="w-12 h-12 text-amber-300" />}
-                title="How It Works ?"
-                description="Join a savings room, set your weekly deposit target, and commit to your financial goals. Each week, deposit USDC into the smart contract pool. Stay consistent to remain eligible for rewards. At the end of the challenge, consistent savers share the bonus pool while building healthy financial habits together with the community."
+                title="How It Works"
+                description="Join a savings room, set your deposit target, and commit to your financial goals. Deposit USDC periodically (daily or weekly) into the smart contract pool. Stay consistent to remain eligible for rewards. At the end of the challenge, consistent savers share the reward pool — building healthy financial habits together with the community."
               />
               <FeatureCard
                 icon={<FaRobot className="w-12 h-12 text-amber-300" />}
                 title="AI-Assisted"
-                description="Our intelligent AI analyzes your financial goals, risk tolerance, and saving patterns to recommend the perfect investment strategy. Get personalized suggestions for Conservative, Balanced, or Aggressive approaches. The AI continuously learns from market trends and your preferences to optimize your savings journey and maximize returns."
+                description="Powered by EigenAI, our AI analyzes your financial goals and risk tolerance to recommend the right savings strategy. Choose from Conservative, Balanced, or Aggressive approaches — each with different risk levels and expected returns. Get personalized guidance to help you pick the best strategy for your savings room."
               />
               <FeatureCard
                 icon={<FaTrophy className="w-12 h-12 text-amber-300" />}
                 title="Rewards"
-                description="Earn rewards for staying consistent! Players who meet their weekly targets share from the bonus pool funded by those who miss deposits. The longer you stay committed, the bigger your share. Top performers receive additional bonuses, NFT badges, and exclusive access to premium rooms with higher reward multipliers."
+                description="Earn rewards for staying consistent! Your consistency score (0-100%) determines your share of the reward pool. The more consistently you deposit, the bigger your share. All transactions are 100% gasless — sponsored by the platform — and your principal deposits are always protected and claimable."
               />
             </div>
           </div>

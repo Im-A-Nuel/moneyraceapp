@@ -87,6 +87,87 @@ function WinnerGlow() {
     );
 }
 
+// Winner celebration overlay
+function WinnerOverlay({ winner }: { winner: Racer }) {
+    return (
+        <div className="absolute inset-0 z-30 flex items-center justify-center animate-winner-entrance">
+            {/* Blur backdrop */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-3xl" />
+
+            {/* Radial glow behind */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-80 h-80 bg-amber-400/20 rounded-full blur-[80px] animate-pulse" />
+            </div>
+
+            {/* Center card */}
+            <div className="relative flex flex-col items-center gap-4 p-8 animate-winner-pop">
+                {/* Rotating ring */}
+                <div className="absolute -inset-4 border-2 border-dashed border-amber-400/40 rounded-full animate-spin" style={{ animationDuration: '8s' }} />
+                <div className="absolute -inset-8 border border-dashed border-yellow-300/20 rounded-full animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }} />
+
+                {/* Trophy */}
+                <div className="relative">
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(250,204,21,0.6)] animate-bounce" style={{ animationDuration: '2s' }}>
+                        <FaTrophy className="w-10 h-10 text-[#2D1F0F] drop-shadow-lg" />
+                    </div>
+                    {/* Sparkle ring around trophy */}
+                    {[0, 60, 120, 180, 240, 300].map((deg) => (
+                        <div
+                            key={deg}
+                            className="absolute w-2 h-2 bg-yellow-300 rounded-full animate-ping"
+                            style={{
+                                top: `${50 - 48 * Math.cos((deg * Math.PI) / 180)}%`,
+                                left: `${50 + 48 * Math.sin((deg * Math.PI) / 180)}%`,
+                                animationDelay: `${deg / 360}s`,
+                                animationDuration: '1.5s',
+                            }}
+                        />
+                    ))}
+                </div>
+
+                {/* Avatar */}
+                <span className="text-5xl drop-shadow-lg">{winner.avatar}</span>
+
+                {/* Name */}
+                <h3 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300"
+                    style={{ textShadow: '0 0 30px rgba(250,204,21,0.3)' }}
+                >
+                    {winner.name}
+                </h3>
+
+                {/* Winner label */}
+                <div className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full shadow-[0_0_24px_rgba(250,204,21,0.5)]">
+                    <HiSparkles className="w-5 h-5 text-[#2D1F0F] animate-spin" style={{ animationDuration: '3s' }} />
+                    <span className="text-[#2D1F0F] text-lg font-black uppercase tracking-widest">Champion!</span>
+                    <HiSparkles className="w-5 h-5 text-[#2D1F0F] animate-spin" style={{ animationDuration: '3s', animationDirection: 'reverse' }} />
+                </div>
+
+                {/* Savings amount */}
+                <p className="text-amber-200/80 text-sm font-semibold">${winner.savings} saved</p>
+            </div>
+
+            <style jsx>{`
+                @keyframes winner-entrance {
+                    0% { opacity: 0; }
+                    100% { opacity: 1; }
+                }
+                @keyframes winner-pop {
+                    0% { transform: scale(0.3); opacity: 0; }
+                    50% { transform: scale(1.08); }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .animate-winner-entrance {
+                    animation: winner-entrance 0.4s ease-out forwards;
+                }
+                .animate-winner-pop {
+                    animation: winner-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards;
+                    opacity: 0;
+                }
+            `}</style>
+        </div>
+    );
+}
+
 export function RaceAnimation() {
     const [racers, setRacers] = useState<Racer[]>(initialRacers);
     const [raceComplete, setRaceComplete] = useState(false);
@@ -176,6 +257,12 @@ export function RaceAnimation() {
             {/* Confetti on winner */}
             {showConfetti && <Confetti />}
 
+            {/* Winner celebration overlay */}
+            {showConfetti && (() => {
+                const winner = racers.find(r => r.isWinner);
+                return winner ? <WinnerOverlay winner={winner} /> : null;
+            })()}
+
             {/* Header */}
             <div className="relative flex items-center justify-between mb-6 z-10">
                 <div className="flex items-center gap-3">
@@ -236,9 +323,9 @@ export function RaceAnimation() {
                             />
 
                             {/* Lane content */}
-                            <div className="relative flex items-center justify-between px-4 py-3">
-                                {/* Left: Position + Info */}
-                                <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative px-4 py-3 h-[52px]">
+                                {/* Left: Position + Info (static) */}
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-3 z-10">
                                     <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
                                         {getPositionBadge(racer.position, racer.isWinner)}
                                     </div>
@@ -250,27 +337,17 @@ export function RaceAnimation() {
                                     </div>
                                 </div>
 
-                                {/* Right: Car + Winner badge */}
-                                <div className="flex items-center gap-3 flex-shrink-0">
-                                    {/* Winner badge */}
-                                    {racer.isWinner && (
-                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full shadow-[0_0_16px_rgba(250,204,21,0.5)]">
-                                            <HiSparkles className="w-3.5 h-3.5 text-[#2D1F0F] animate-spin" style={{ animationDuration: '3s' }} />
-                                            <span className="text-[#2D1F0F] text-xs font-black uppercase tracking-wide">Winner!</span>
-                                            <HiSparkles className="w-3.5 h-3.5 text-[#2D1F0F] animate-spin" style={{ animationDuration: '3s', animationDirection: 'reverse' }} />
-                                        </div>
-                                    )}
-
-                                    {/* Car icon with trail */}
-                                    <div
-                                        className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gradient-to-r ${racer.bgGradient} shadow-lg border border-white/20`}
-                                        style={{
-                                            transform: `translateX(${Math.min(racer.speed * 0.3, 30)}px)`,
-                                            transition: 'transform 0.15s linear',
-                                        }}
-                                    >
+                                {/* Car: moves dynamically with speed */}
+                                <div
+                                    className="absolute top-1/2 -translate-y-1/2 z-10"
+                                    style={{
+                                        left: `clamp(140px, calc(${racer.speed}% - 40px), calc(100% - 50px))`,
+                                        transition: 'left 0.15s linear',
+                                    }}
+                                >
+                                    <div className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gradient-to-r ${racer.bgGradient} shadow-lg border border-white/20`}>
                                         {/* Speed trails */}
-                                        {racer.speed > 30 && (
+                                        {racer.speed > 20 && (
                                             <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-50">
                                                 <div className="w-4 h-[2px] bg-white/40 rounded-full" />
                                                 <div className="w-2 h-[2px] bg-white/25 rounded-full" />
@@ -280,6 +357,7 @@ export function RaceAnimation() {
                                         <FaCar className="w-4 h-4 text-white drop-shadow-md" />
                                     </div>
                                 </div>
+
                             </div>
                         </div>
                     </div>
