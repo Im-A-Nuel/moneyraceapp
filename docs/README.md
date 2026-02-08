@@ -2,7 +2,7 @@
 
 Welcome to **Money Race**, an innovative decentralized group savings protocol on **Sui blockchain** that gamifies financial discipline.
 
-<img src="introduction/landingpage.png" alt="Anto the Ant - Money Race Mascot"/>
+<img src="introduction/landingpage.png" alt="Anto the Ant - Money Race Mascot" width="100%"/>
 
 ---
 
@@ -56,8 +56,10 @@ Money Race is a **gamified group savings dApp** where users join savings rooms, 
 
 ## 🔗 Important Links
 
+- **Link App** : 
 - **Demo App**: [Coming Soon]
 - **Pitchdeck**: [Coming Soon]
+-
 
 ---
 

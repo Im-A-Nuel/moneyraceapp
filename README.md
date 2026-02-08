@@ -1,111 +1,99 @@
 # MoneyRace Frontend
 
-AI-Powered Saving Game on Sui Blockchain - Frontend Application
+> Next.js frontend for MoneyRace - an AI-powered gamified savings platform on Sui.
 
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: Radix UI + shadcn/ui
-- **Blockchain**: Sui.js SDK
-- **State Management**: Zustand
+- **UI**: Radix UI + shadcn/ui
+- **Blockchain**: @mysten/sui SDK, @mysten/dapp-kit
+- **State**: Zustand
 
-## Features
+## Pages
 
-### Implemented Pages
-
-1. **Landing Page** (`/`)
-   - Hero section with value proposition
-   - Feature highlights
-   - How it works section
-   - CTA buttons
-
-2. **Dashboard** (`/dashboard`)
-   - User statistics overview
-   - Active and ended rooms list
-   - Create new room button
-   - Quick actions
-
-3. **Create Room** (`/create-room`)
-   - Step 1: Basic information
-   - Step 2: AI strategy recommendation
-   - Step 3: Choose strategy
-   - Step 4: Review and confirm
-
-4. **Room Detail** (`/room/[id]`)
-   - Room statistics
-   - Deposit interface
-   - Participants leaderboard
-   - Claim rewards
+| Page | Route | Description |
+|------|-------|-------------|
+| Landing | `/` | Hero section, features, how it works, race animation |
+| Dashboard | `/dashboard` | User stats, active/joined/ended rooms, room search |
+| Create Room | `/create-room` | Multi-step form with AI strategy recommendations |
+| Room Detail | `/room/[id]` | Room stats, deposit, leaderboard, claim rewards |
 
 ## Setup
 
-### Installation
-
 ```bash
+# Install dependencies
 npm install
-```
 
-### Environment Variables
+# Configure environment
+cp .env.example .env
 
-```bash
-cp .env.example .env.local
-```
-
-Update `.env.local`:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
-NEXT_PUBLIC_SUI_NETWORK=testnet
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
-NEXT_PUBLIC_PACKAGE_ID=0x...
-```
-
-### Development
-
-```bash
+# Start development server
 npm run dev
 # Open http://localhost:3000
 ```
 
-### Build
+## Environment Variables
 
-```bash
-npm run build
-npm start
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_SUI_NETWORK=testnet
+NEXT_PUBLIC_SUI_RPC=https://fullnode.testnet.sui.io
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+NEXT_PUBLIC_PACKAGE_ID=0x...
+NEXT_PUBLIC_ADMIN_CAP_ID=0x...
+NEXT_PUBLIC_FAUCET_ID=0x...
+NEXT_PUBLIC_USDC_COIN_TYPE=0x...::usdc::USDC
 ```
 
 ## Project Structure
 
 ```
 frontends/
-├── app/                  # Next.js App Router
-│   ├── page.tsx         # Landing page
-│   ├── dashboard/       # Dashboard
-│   ├── create-room/     # Create room flow
-│   └── room/[id]/       # Room detail
-├── components/ui/       # UI components
-├── lib/                 # Utilities
-│   ├── api.ts          # API client
-│   └── sui.ts          # Sui integration
-└── types/              # TypeScript types
+├── app/                     # Next.js App Router
+│   ├── page.tsx             # Landing page
+│   ├── dashboard/           # Dashboard with room listings
+│   ├── create-room/         # Multi-step room creation
+│   └── room/[id]/           # Room detail & interactions
+├── components/ui/           # UI Components
+│   ├── Navbar.tsx            # Navigation bar
+│   ├── Footer.tsx            # Footer with docs link
+│   ├── RaceAnimation.tsx     # Live savings race visualization
+│   ├── GoldCoin.tsx          # Animated coin component
+│   └── MascotAnimation.tsx   # Ant mascot character
+├── lib/                     # Utilities
+│   ├── api.ts               # Backend API client
+│   ├── sui-config.tsx       # Sui SDK configuration
+│   └── utils.ts             # Helper functions
+├── store/                   # State Management
+│   ├── auth.store.ts        # Auth state (Zustand)
+│   └── room.store.ts        # Room data cache
+└── types/                   # TypeScript interfaces
 ```
 
-## User Flow
+## Key Features
 
-1. Land → Get Started
-2. Dashboard → Create Room
-3. AI Prompt → Choose Strategy
-4. Review → Create (on-chain)
-5. Deposit Weekly (gasless)
-6. Claim Rewards
+- **Dual Login** - Google OAuth (zkLogin) + Sui Wallet connect
+- **AI Chat** - Describe savings goals, get strategy recommendations
+- **Gasless UX** - All blockchain transactions sponsored by backend
+- **Live Leaderboard** - Real-time participant ranking by consistency
+- **Race Animation** - Animated visualization with confetti on winner
+- **USDC Faucet** - One-click testnet USDC minting
+- **Private Rooms** - Password-protected rooms with auto-generated keys
+- **Responsive** - Mobile-friendly layout
 
-## MVP Scope
+## Build & Deploy
 
-- Full UI/UX flow
-- Ready for backend integration
-- Blockchain interaction ready
-- Mock data for demonstration
+```bash
+# Production build
+npm run build
+
+# Start production server
+npm start
+```
+
+Deployed on **Vercel**: [moneyraceapp-lac.vercel.app](https://moneyraceapp-lac.vercel.app/)
 
 ## License
 

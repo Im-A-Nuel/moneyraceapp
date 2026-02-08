@@ -10,7 +10,7 @@ Complete user journey from sign-up to earning rewards on Money Race.
 
 Two options to get started — **both gasless**:
 
-<img src="loginway.png" alt="connect account to MoneyRace" width="50%"/>
+<img src="loginway.png" alt="connect account to MoneyRace" width="100%"/>
 
 **Google Login (zkLogin):**
 - No wallet needed — one-click sign-in
@@ -110,7 +110,7 @@ Total Payout: 504.5 USDC
 
 ## 📊 Flow Diagram
 
-<img src="flowdiagram.png" alt="Money Race - How It Works Flowchart" width="50%"/>
+<img src="flowdiagram.png" alt="Money Race - How It Works Flowchart" width="100%"/>
 
 ---
 

@@ -6,7 +6,7 @@
 |----------|-----|
 | Website | [moneyraceapp-lac.vercel.app](https://moneyraceapp-lac.vercel.app/) |
 | dApp | [moneyraceapp-lac.vercel.app](https://moneyraceapp-lac.vercel.app/) |
-| Documentation | [GitBook](https://minigarage.gitbook.io/moneyrace/) |
+| Documentation | [GitBook](https://moneyrace.gitbook.io/moneyracedocs/) |
 | Pitchdeck | [Upcoming] |
 | GitHub | [MoneyRaceRepo](https://github.com/MoneyRaceRepo) |
 

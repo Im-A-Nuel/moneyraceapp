@@ -8,7 +8,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto">
         {/* Footer links */}
         <div className="flex items-center justify-center gap-6 mb-6">
-          <a href="https://minigarage.gitbook.io/moneyrace/" target="_blank" rel="noopener noreferrer" className="text-amber-200/80 hover:text-white text-sm transition-colors">
+          <a href="https://moneyrace.gitbook.io/moneyracedocs/" target="_blank" rel="noopener noreferrer" className="text-amber-200/80 hover:text-white text-sm transition-colors">
             Docs
           </a>
           <span className="text-amber-700/50">|</span>
