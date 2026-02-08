@@ -8,7 +8,7 @@ Money Race aims to become the leading gamified savings protocol on Sui blockchai
 
 ## Timeline
 
-<img src="roadmap.png" alt="Money Race Development Roadmap - 5 Phase Timeline" width="100%"/>
+<img src="roadmap.png" alt="Money Race Development Roadmap - 5 Phase Timeline"/>
 
 ---
 

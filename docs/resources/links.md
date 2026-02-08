@@ -7,19 +7,8 @@
 | Website | [moneyraceapp-lac.vercel.app](https://moneyraceapp-lac.vercel.app/) |
 | dApp | [moneyraceapp-lac.vercel.app](https://moneyraceapp-lac.vercel.app/) |
 | Documentation | [GitBook](https://minigarage.gitbook.io/moneyrace/) |
-| GitHub (Frontend) | [MoneyRaceRepo/frontends](https://github.com/MoneyRaceRepo/frontends) |
-| GitHub (Backend) | [MoneyRaceRepo/backends](https://github.com/MoneyRaceRepo/backends) |
-| GitHub (Smart Contract) | [MoneyRaceRepo/smartcontract](https://github.com/MoneyRaceRepo/smartcontract) |
-
----
-
-## Social Media
-
-| Platform | Link |
-|----------|------|
-| Twitter/X | [Coming Soon] |
-| Discord | [Coming Soon] |
-| YouTube | [Coming Soon] |
+| Pitchdeck | [Upcoming] |
+| GitHub | [MoneyRaceRepo](https://github.com/MoneyRaceRepo) |
 
 ---
 
@@ -39,7 +28,7 @@
 | Resource | Description |
 |----------|-------------|
 | [Move Language](https://move-language.github.io/move/) | Smart contract language |
-| [Sui TypeScript SDK](https://www.npmjs.com/package/@mysten/sui.js) | JavaScript/TypeScript SDK |
+| [Sui TypeScript SDK](https://www.npmjs.com/package/@mysten/sui) | JavaScript/TypeScript SDK |
 | [dApp Kit](https://www.npmjs.com/package/@mysten/dapp-kit) | React hooks for Sui |
 
 ---
@@ -51,23 +40,15 @@
 | **Package ID (Testnet)** | `0x0e5bb307c15081e2159f2a3a4d4aa509bd0ed1cda6338accf4189e734c5f122c` |
 | **View on Sui Explorer** | [Testnet Package](https://suiexplorer.com/object/0x0e5bb307c15081e2159f2a3a4d4aa509bd0ed1cda6338accf4189e734c5f122c?network=testnet) |
 | **Module Name** | `money_race_v2` |
-| **Source Code** | [Coming Soon] |
-| **Admin Cap** | `0xf2c1b1af23b32aab0ea2efa2c2483adf90321c19e77f204199e0ca5211a1887b` |
-| **USDC Faucet** | `0x9baa4f323d403060c13bfe280b0fef3f95a4f7c0bc23fb393660b7ef946e4cfe` |
 
 ---
 
 ## Contact
 
 - **Email:** diva.filemon@ti.ukdw.ac.id
+- **Email:** imanuel.putra@ti.ukdw.ac.id
 - **GitHub:** [DivaManik](https://github.com/DivaManik)
 - **X:** [@ManikDiva62985](https://x.com/ManikDiva62985)
-
----
-
-## Media Kit
-
-Coming soon: Logos, brand guidelines, and press resources.
 
 ---
 

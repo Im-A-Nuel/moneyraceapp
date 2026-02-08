@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FaCar, FaTrophy, FaMedal, FaFlagCheckered } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 
@@ -13,7 +13,7 @@ interface Racer {
     speed: number;
     position: number;
     isWinner: boolean;
-    savings: number; // Mock savings amount
+    savings: number;
 }
 
 const initialRacers: Racer[] = [
@@ -24,13 +24,83 @@ const initialRacers: Racer[] = [
     { id: 5, name: 'Emma.sui', avatar: '🦄', carColor: 'text-pink-400', bgGradient: 'from-pink-500 to-rose-600', speed: 0, position: 0, isWinner: false, savings: 340 },
 ];
 
+// Confetti particle
+function Confetti() {
+    const [particles] = useState(() =>
+        Array.from({ length: 40 }, (_, i) => ({
+            id: i,
+            x: Math.random() * 100,
+            delay: Math.random() * 2,
+            duration: 2 + Math.random() * 2,
+            size: 4 + Math.random() * 6,
+            color: ['#FFD700', '#FF6B35', '#FF1493', '#00CED1', '#7B68EE', '#32CD32', '#FF4500', '#FFB347'][Math.floor(Math.random() * 8)],
+            rotation: Math.random() * 360,
+        }))
+    );
+
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
+            {particles.map((p) => (
+                <div
+                    key={p.id}
+                    className="absolute animate-confetti-fall"
+                    style={{
+                        left: `${p.x}%`,
+                        top: '-10px',
+                        width: `${p.size}px`,
+                        height: `${p.size * 0.6}px`,
+                        backgroundColor: p.color,
+                        borderRadius: '2px',
+                        transform: `rotate(${p.rotation}deg)`,
+                        animationDelay: `${p.delay}s`,
+                        animationDuration: `${p.duration}s`,
+                    }}
+                />
+            ))}
+
+            <style jsx>{`
+                @keyframes confetti-fall {
+                    0% {
+                        transform: translateY(0) rotate(0deg) scale(1);
+                        opacity: 1;
+                    }
+                    100% {
+                        transform: translateY(500px) rotate(720deg) scale(0.3);
+                        opacity: 0;
+                    }
+                }
+                .animate-confetti-fall {
+                    animation: confetti-fall linear forwards;
+                }
+            `}</style>
+        </div>
+    );
+}
+
+// Sparkle burst around winner
+function WinnerGlow() {
+    return (
+        <div className="absolute inset-0 pointer-events-none z-10">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-400/10 via-yellow-300/20 to-amber-400/10 animate-pulse rounded-2xl" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-amber-400/0 via-yellow-400/30 to-amber-400/0 blur-xl animate-pulse rounded-2xl" />
+        </div>
+    );
+}
+
 export function RaceAnimation() {
     const [racers, setRacers] = useState<Racer[]>(initialRacers);
     const [raceComplete, setRaceComplete] = useState(false);
     const [countdown, setCountdown] = useState(10);
+    const [showConfetti, setShowConfetti] = useState(false);
+
+    const resetRace = useCallback(() => {
+        setRacers(initialRacers.map((r) => ({ ...r, speed: 0, position: 0, isWinner: false })));
+        setRaceComplete(false);
+        setShowConfetti(false);
+        setCountdown(10);
+    }, []);
 
     useEffect(() => {
-        // Slower interval for smoother animation (50ms instead of 80ms)
         const interval = setInterval(() => {
             setRacers((prev) => {
                 if (raceComplete) return prev;
@@ -38,27 +108,25 @@ export function RaceAnimation() {
                 const updated = prev.map((racer) => {
                     if (racer.isWinner) return racer;
 
-                    // Smoother speed increments (smaller values)
                     const baseSpeed = racer.name === 'You' ? 1.2 : 0.8;
                     const savingsBonus = racer.savings / 800;
                     const randomFactor = Math.random() * 0.8;
                     const increment = baseSpeed + savingsBonus + randomFactor;
-
                     const newSpeed = Math.min(racer.speed + increment, 100);
+
                     return { ...racer, speed: newSpeed };
                 });
 
-                // Sort by speed to determine positions
                 const sorted = [...updated].sort((a, b) => b.speed - a.speed);
                 const withPositions = updated.map((r) => ({
                     ...r,
                     position: sorted.findIndex((s) => s.id === r.id) + 1,
                 }));
 
-                // Check for winner
                 const winner = withPositions.find((r) => r.speed >= 100 && !r.isWinner);
                 if (winner) {
                     setRaceComplete(true);
+                    setShowConfetti(true);
                     return withPositions.map((r) => ({
                         ...r,
                         isWinner: r.id === winner.id,
@@ -67,48 +135,49 @@ export function RaceAnimation() {
 
                 return withPositions;
             });
-        }, 50); // Faster updates = smoother animation
+        }, 60);
 
-        // Countdown timer
         const countdownInterval = setInterval(() => {
-            setCountdown((prev) => {
-                if (prev <= 1) return 10;
-                return prev - 1;
-            });
+            setCountdown((prev) => (prev <= 1 ? 10 : prev - 1));
         }, 1000);
 
-        // Reset race after 10 seconds
-        const resetTimer = setTimeout(() => {
-            setRacers(initialRacers.map((r) => ({ ...r, speed: 0, position: 0, isWinner: false })));
-            setRaceComplete(false);
-            setCountdown(10);
-        }, 10000);
+        const resetTimer = setTimeout(resetRace, 10000);
 
         return () => {
             clearInterval(interval);
             clearInterval(countdownInterval);
             clearTimeout(resetTimer);
         };
-    }, [raceComplete]);
+    }, [raceComplete, resetRace]);
 
     const getPositionBadge = (position: number, isWinner: boolean) => {
-        if (isWinner) return <FaTrophy className="w-4 h-4 text-yellow-400" />;
+        if (isWinner) return <FaTrophy className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.8)]" />;
         if (position === 1) return <FaMedal className="w-3.5 h-3.5 text-yellow-400" />;
         if (position === 2) return <FaMedal className="w-3.5 h-3.5 text-gray-300" />;
         if (position === 3) return <FaMedal className="w-3.5 h-3.5 text-amber-600" />;
-        return <span className="text-xs text-white/50">#{position}</span>;
+        return <span className="text-xs text-white/50 font-mono">#{position}</span>;
     };
+
+    // Sort racers by position for display (winner at top)
+    const sortedRacers = [...racers].sort((a, b) => {
+        if (a.isWinner) return -1;
+        if (b.isWinner) return 1;
+        return a.position - b.position;
+    });
 
     return (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2D1F0F] via-[#3D2915] to-[#2D1F0F] p-6 md:p-8 border border-amber-500/30 shadow-2xl">
-            {/* Decorative elements */}
+            {/* Background decorations */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-10 left-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl" />
                 <div className="absolute bottom-10 right-10 w-60 h-60 bg-orange-500/10 rounded-full blur-3xl" />
             </div>
 
+            {/* Confetti on winner */}
+            {showConfetti && <Confetti />}
+
             {/* Header */}
-            <div className="relative flex items-center justify-between mb-6">
+            <div className="relative flex items-center justify-between mb-6 z-10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
                         <FaFlagCheckered className="w-5 h-5 text-[#2D1F0F]" />
@@ -130,91 +199,95 @@ export function RaceAnimation() {
             </div>
 
             {/* Race Track */}
-            <div className="relative space-y-3">
-                {racers.map((racer, index) => (
-                    <div key={racer.id} className="relative group">
-                        {/* Lane Container */}
-                        <div className={`relative h-14 md:h-16 rounded-2xl overflow-hidden transition-all duration-300 ${racer.isWinner ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-[#2D1F0F]' : ''}`}>
-                            {/* Track Background */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/10 to-white/5 border border-white/10" />
+            <div className="relative space-y-2 z-10">
+                {sortedRacers.map((racer) => (
+                    <div
+                        key={racer.id}
+                        className="relative"
+                        style={{ transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                    >
+                        {/* Winner glow */}
+                        {racer.isWinner && <WinnerGlow />}
 
-                            {/* Lane Markers */}
-                            <div className="absolute inset-0 flex items-center">
-                                {[20, 40, 60, 80].map((pos) => (
-                                    <div key={pos} className="absolute h-full w-px bg-white/10" style={{ left: `${pos}%` }}>
-                                        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-white/30">{pos}%</span>
-                                    </div>
-                                ))}
-                            </div>
+                        {/* Lane */}
+                        <div
+                            className={`
+                                relative rounded-2xl overflow-hidden
+                                transition-all duration-500 ease-out
+                                ${racer.isWinner
+                                    ? 'ring-2 ring-yellow-400/80 shadow-[0_0_20px_rgba(250,204,21,0.3)]'
+                                    : racer.name === 'You'
+                                        ? 'ring-1 ring-amber-500/40'
+                                        : ''
+                                }
+                            `}
+                        >
+                            {/* Track bg */}
+                            <div className="absolute inset-0 bg-white/[0.04] border border-white/[0.08] rounded-2xl" />
 
-                            {/* Progress Fill */}
+                            {/* Progress fill */}
                             <div
-                                className={`absolute inset-y-0 left-0 bg-gradient-to-r ${racer.bgGradient} opacity-30`}
+                                className={`absolute inset-y-0 left-0 bg-gradient-to-r ${racer.bgGradient} rounded-2xl`}
                                 style={{
                                     width: `${racer.speed}%`,
-                                    transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    opacity: racer.isWinner ? 0.4 : 0.2,
+                                    transition: 'width 0.15s linear, opacity 0.5s ease',
                                 }}
                             />
 
-                            {/* Racer Car */}
-                            <div
-                                className="absolute top-1/2 -translate-y-1/2 flex items-center gap-2"
-                                style={{
-                                    left: `calc(${Math.min(racer.speed, 92)}% - 20px)`,
-                                    transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                                }}
-                            >
-                                {/* Car/Racer Badge */}
-                                <div className={`relative flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r ${racer.bgGradient} shadow-lg border border-white/20 backdrop-blur-sm`}>
-                                    {/* Avatar */}
-                                    <span className="text-xl">{racer.avatar}</span>
-                                    {/* Car Icon */}
-                                    <FaCar className="w-5 h-5 text-white drop-shadow-lg" />
-                                    {/* Speed lines effect */}
-                                    {racer.speed > 50 && (
-                                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-60">
-                                            <div className="w-3 h-0.5 bg-white/40 rounded" />
-                                            <div className="w-2 h-0.5 bg-white/30 rounded" />
-                                            <div className="w-1 h-0.5 bg-white/20 rounded" />
+                            {/* Lane content */}
+                            <div className="relative flex items-center justify-between px-4 py-3">
+                                {/* Left: Position + Info */}
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                                        {getPositionBadge(racer.position, racer.isWinner)}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className={`text-sm font-bold truncate ${racer.name === 'You' ? 'text-amber-300' : 'text-white/90'}`}>
+                                            {racer.name}
+                                        </p>
+                                        <p className="text-[11px] text-white/40">${racer.savings} saved</p>
+                                    </div>
+                                </div>
+
+                                {/* Right: Car + Winner badge */}
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                    {/* Winner badge */}
+                                    {racer.isWinner && (
+                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full shadow-[0_0_16px_rgba(250,204,21,0.5)]">
+                                            <HiSparkles className="w-3.5 h-3.5 text-[#2D1F0F] animate-spin" style={{ animationDuration: '3s' }} />
+                                            <span className="text-[#2D1F0F] text-xs font-black uppercase tracking-wide">Winner!</span>
+                                            <HiSparkles className="w-3.5 h-3.5 text-[#2D1F0F] animate-spin" style={{ animationDuration: '3s', animationDirection: 'reverse' }} />
                                         </div>
                                     )}
+
+                                    {/* Car icon with trail */}
+                                    <div
+                                        className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gradient-to-r ${racer.bgGradient} shadow-lg border border-white/20`}
+                                        style={{
+                                            transform: `translateX(${Math.min(racer.speed * 0.3, 30)}px)`,
+                                            transition: 'transform 0.15s linear',
+                                        }}
+                                    >
+                                        {/* Speed trails */}
+                                        {racer.speed > 30 && (
+                                            <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-50">
+                                                <div className="w-4 h-[2px] bg-white/40 rounded-full" />
+                                                <div className="w-2 h-[2px] bg-white/25 rounded-full" />
+                                            </div>
+                                        )}
+                                        <span className="text-base leading-none">{racer.avatar}</span>
+                                        <FaCar className="w-4 h-4 text-white drop-shadow-md" />
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* Racer Info - Left Side */}
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                <div className="w-6 h-6 flex items-center justify-center">
-                                    {getPositionBadge(racer.position, racer.isWinner)}
-                                </div>
-                                <div className="hidden md:block">
-                                    <p className={`text-sm font-bold ${racer.name === 'You' ? 'text-amber-300' : 'text-white/90'}`}>
-                                        {racer.name}
-                                    </p>
-                                    <p className="text-[10px] text-white/50">${racer.savings} saved</p>
-                                </div>
-                            </div>
-
-                            {/* Winner Badge */}
-                            {racer.isWinner && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full shadow-lg animate-pulse">
-                                    <HiSparkles className="w-4 h-4 text-[#2D1F0F]" />
-                                    <span className="text-[#2D1F0F] text-xs font-black uppercase">Winner!</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Finish Line */}
-            <div className="absolute right-6 md:right-8 top-[100px] bottom-[60px] w-3 rounded-full overflow-hidden shadow-lg">
-                {[...Array(16)].map((_, i) => (
-                    <div key={i} className={`h-[6.25%] ${i % 2 === 0 ? 'bg-white' : 'bg-black'}`} />
-                ))}
-            </div>
-
             {/* Footer Stats */}
-            <div className="relative mt-6 pt-4 border-t border-white/10">
+            <div className="relative mt-6 pt-4 border-t border-white/10 z-10">
                 <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
@@ -236,9 +309,7 @@ export function RaceAnimation() {
                         </div>
                     </div>
                     <div className="w-px h-8 bg-white/10" />
-                    <div className="text-center">
-                        <p className="text-amber-200/70 text-xs">Save consistently to lead the race! 🏁</p>
-                    </div>
+                    <p className="text-amber-200/70 text-xs">Save consistently to lead the race!</p>
                 </div>
             </div>
         </div>

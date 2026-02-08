@@ -430,34 +430,7 @@ export default function CreateRoom() {
             )}
           </div>
 
-          {/* Test Mode */}
-          <div className="bg-[#F5EDD8] rounded-xl p-4 border-2 border-[#FFB347]/60 shadow-md">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={isTestMode}
-                  onChange={(e) => setIsTestMode(e.target.checked)}
-                  className="w-5 h-5 accent-[#FF8C00] cursor-pointer"
-                />
-              </div>
-              <div className="flex-1">
-                <span className="text-[#4A3000] font-semibold flex items-center gap-2">
-                  <HiBeaker className="w-5 h-5 text-[#FF8C00]" />
-                  Enable Test Mode
-                </span>
-                <p className="text-xs text-[#6B4F0F] mt-1">1 minute periods for quick testing</p>
-              </div>
-            </label>
-            {isTestMode && (
-              <div className="mt-3 bg-[#FF8C00]/20 border-2 border-[#FF8C00]/40 rounded-xl p-3">
-                <p className="text-[#4A3000] text-sm font-semibold flex items-center gap-2">
-                  <HiSparkles className="w-5 h-5 text-[#FF8C00]" />
-                  Each "week" will be only 1 minute long for testing purposes
-                </p>
-              </div>
-            )}
-          </div>
+          {/* Test Mode - hidden from UI */}
 
           <button
             onClick={() => setCurrentStep(2)}
@@ -797,14 +770,7 @@ export default function CreateRoom() {
                 </span>
               </div>
 
-              {isTestMode && (
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-[#6B4F0F] font-medium">Mode</span>
-                  <span className="font-bold text-[#E89530] bg-[#FF8C00]/20 px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm">
-                    <HiBeaker className="w-4 h-4" /> Test Mode
-                  </span>
-                </div>
-              )}
+              {/* Test Mode info - hidden from UI */}
             </div>
           </div>
 

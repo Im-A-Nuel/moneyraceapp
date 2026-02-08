@@ -14,22 +14,9 @@ Money Race is powered by **Sui Move** smart contracts deployed as the `money_rac
 
 ## Contract Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              Money Race Protocol (money_race_v2)             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │    Room     │  │    Vault    │  │   Player    │        │
-│  │  (Shared)   │  │  (Shared)   │  │  Position   │        │
-│  │             │  │             │  │   (Owned)   │        │
-│  └─────────────┘  └─────────────┘  └─────────────┘        │
-│         │               │               │                  │
-│         └───────────────┴───────────────┘                  │
-│                    AdminCap                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+
+<img src="contractarchitecturev2.png" alt="Contract Architecture" width="50%"/>
+
 
 **Design Pattern:** Object-centric architecture where Room and Vault are shared objects, while PlayerPosition is an owned NFT giving users exclusive control over their participation.
 
